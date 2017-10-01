@@ -1,0 +1,79 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+buildscript {
+    repositories {
+        mavenLocal()
+    }
+    dependencies {
+        classpath 'io.github.spencerpark:jupyter-kernel-installer:1.0.1'
+    }
+}
+
+plugins {
+    id 'com.github.hierynomus.license' version '0.14.0'
+}
+
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+apply plugin: 'io.github.spencerpark.jupyter-kernel-installer'
+
+group 'io.github.spencerpark'
+version '1.0-SNAPSHOT'
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.1'
+}
+
+compileJava {
+    sourceCompatibility = 1.9
+    targetCompatibility = 1.9
+}
+
+configurations {
+    shade
+    shade.transitive = false
+    compile.extendsFrom(shade)
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '1.0.3-SNAPSHOT'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+jar {
+    //Include all shaded dependencies in the jar
+    from configurations.shade
+            .collect {it.isDirectory() ? it : zipTree(it)}
+
+    manifest {
+        attributes('Main-class': 'io.github.spencerpark.IJava')
+    }
+}
+
+processResources {
+    def tokens = [
+            'version': project.version,
+            'project': project.name
+    ]
+    inputs.properties(tokens)
+    filter ReplaceTokens, tokens: tokens
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+jupyter {
+    kernelDisplayName = 'Java'
+    kernelLanguage = 'java'
+}
