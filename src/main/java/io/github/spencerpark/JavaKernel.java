@@ -1,18 +1,18 @@
 /**
  * The MIT License (MIT)
- *
+ * <p>
  * Copyright (c) 2017 Spencer Park
- *
+ * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * <p>
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- *
+ * <p>
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,14 +28,12 @@ import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
 import io.github.spencerpark.jupyter.messages.MIMEBundle;
-import jdk.jshell.JShell;
-import jdk.jshell.JShellException;
-import jdk.jshell.SnippetEvent;
-import jdk.jshell.SourceCodeAnalysis;
+import jdk.jshell.*;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class JavaKernel extends BaseKernel {
@@ -104,6 +102,17 @@ public class JavaKernel extends BaseKernel {
         return this.sourceAnalyzer.analyzeCompletion(source);
     }
 
+    private void printDiagnostics(Snippet snippet) {
+        this.shell.diagnostics(snippet)
+                .map(d -> d.getMessage(Locale.getDefault()))
+                .forEach(msg -> {
+                    for (String line : NEWLINE_PATTERN.split(msg)) {
+                        if (!line.trim().startsWith("location:"))
+                            System.err.println(line);
+                    }
+                });
+    }
+
     @Override
     public MIMEBundle eval(String expr) throws Exception {
         String lastEvalResult = null;
@@ -114,14 +123,24 @@ public class JavaKernel extends BaseKernel {
                 if (event.causeSnippet() == null) {
                     // Fresh snippet
                     JShellException e = event.exception();
-                    if (e != null)
+                    if (e != null) {
+                        if (e instanceof EvalException) {
+                            System.err.println(((EvalException) e).getExceptionClassName());
+                            printDiagnostics(event.snippet());
+                        } else if (e instanceof UnresolvedReferenceException) {
+                            printDiagnostics(((UnresolvedReferenceException) e).getSnippet());
+                        }
                         throw e;
-
-                    if (!event.status().isDefined()) {
-                        throw new IllegalArgumentException("Cannot compile '" + event.snippet().source() + "'");
                     }
 
-                    lastEvalResult = event.value();
+                    if (!event.status().isDefined()) {
+                        printDiagnostics(event.snippet());
+                        throw new IllegalArgumentException("Cannot compile '" + event.snippet().source().trim() + "'");
+                    }
+
+                    lastEvalResult = event.snippet().kind() == Snippet.Kind.EXPRESSION
+                            ? event.value()
+                            : null;
                 }
             }
         }
