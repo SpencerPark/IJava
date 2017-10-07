@@ -24,6 +24,15 @@ task wrapper(type: Wrapper) {
     gradleVersion = '4.1'
 }
 
+license {
+    header = file('LICENSE')
+    mapping {
+        // Use a regular multiline comment rather than a javadoc comment
+        java = 'SLASHSTAR_STYLE'
+    }
+}
+build.dependsOn 'licenseFormat'
+
 compileJava {
     sourceCompatibility = 1.9
     targetCompatibility = 1.9
