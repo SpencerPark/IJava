@@ -37,18 +37,8 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class JavaKernel extends BaseKernel {
-    private static OutputStream stdout = new OutputStream() {
-        @Override
-        public void write(int b) {
-            System.out.write(b);
-        }
-    };
-    private static OutputStream stderr = new OutputStream() {
-        @Override
-        public void write(int b) {
-            System.err.write(b);
-        }
-    };
+    private static OutputStream stdout = new LazyOutputStreamDelegate(() -> System.out);
+    private static OutputStream stderr = new LazyOutputStreamDelegate(() -> System.err);
     private static final CharPredicate IDENTIFIER_CHAR = CharPredicate.builder()
             .inRange('a', 'z')
             .inRange('A', 'Z')
@@ -166,7 +156,7 @@ public class JavaKernel extends BaseKernel {
         while (parenIdx + 1 < code.length() && WS.test(code.charAt(parenIdx + 1))) parenIdx++;
         if (parenIdx + 1 < code.length() && code.charAt(parenIdx + 1) == '(') at = parenIdx + 1;
 
-        List<SourceCodeAnalysis.Documentation> documentations = this.sourceAnalyzer.documentation(code, at, extraDetail);
+        List<SourceCodeAnalysis.Documentation> documentations = this.sourceAnalyzer.documentation(code, at + 1, true);
         if (documentations == null || documentations.isEmpty()) {
             return null;
         }
@@ -203,8 +193,8 @@ public class JavaKernel extends BaseKernel {
 
     @Override
     public ReplacementOptions complete(String code, int at) {
-        int[] end = new int[1]; // As of now this is always the same as the cursor...
-        List<SourceCodeAnalysis.Suggestion> suggestions = this.sourceAnalyzer.completionSuggestions(code, at, end);
+        int[] replaceStart = new int[1]; // As of now this is always the same as the cursor...
+        List<SourceCodeAnalysis.Suggestion> suggestions = this.sourceAnalyzer.completionSuggestions(code, at, replaceStart);
         if (suggestions == null || suggestions.isEmpty()) return null;
 
         List<String> options = suggestions.stream()
@@ -214,9 +204,10 @@ public class JavaKernel extends BaseKernel {
                                 : s2.matchesType() ? 1 : 0
                 )
                 .map(SourceCodeAnalysis.Suggestion::continuation)
+                .distinct()
                 .collect(Collectors.toList());
 
-        return new ReplacementOptions(options, at, end[0]);
+        return new ReplacementOptions(options, replaceStart[0], at + 1);
     }
 
     @Override
