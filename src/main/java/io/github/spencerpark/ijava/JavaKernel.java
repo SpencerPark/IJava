@@ -21,12 +21,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.github.spencerpark;
+package io.github.spencerpark.ijava;
 
 import io.github.spencerpark.jupyter.kernel.BaseKernel;
 import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
+import io.github.spencerpark.jupyter.messages.Header;
 import io.github.spencerpark.jupyter.messages.MIMEBundle;
 import jdk.jshell.*;
 
@@ -67,9 +68,16 @@ public class JavaKernel extends BaseKernel {
                 .pygments("java")
                 .codemirror("java")
                 .build();
-        this.banner = String.format("Java %s", Runtime.version());
+        this.banner = String.format("Java %s :: IJava kernel %s \nProtocol v%s implementation by %s %s",
+                Runtime.version().toString(),
+                IJava.VERSION,
+                Header.PROTOCOL_VERISON,
+                KERNEL_META.getOrDefault("project", "UNKNOWN"),
+                KERNEL_META.getOrDefault("version", "UNKNOWN")
+        );
         this.helpLinks = List.of(
-                new LanguageInfo.Help("Java", "https://docs.oracle.com/javase/tutorial/java/nutsandbolts/index.html")
+                new LanguageInfo.Help("Java tutorial", "https://docs.oracle.com/javase/tutorial/java/nutsandbolts/index.html"),
+                new LanguageInfo.Help("IJava homepage", "https://github.com/SpencerPark/IJava")
         );
     }
 

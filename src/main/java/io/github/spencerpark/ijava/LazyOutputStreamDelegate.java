@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.github.spencerpark;
+package io.github.spencerpark.ijava;
 
 import java.io.IOException;
 import java.io.OutputStream;

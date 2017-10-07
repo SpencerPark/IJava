@@ -21,18 +21,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.github.spencerpark;
+package io.github.spencerpark.ijava;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import io.github.spencerpark.jupyter.channels.JupyterConnection;
 import io.github.spencerpark.jupyter.channels.JupyterSocket;
 import io.github.spencerpark.jupyter.kernel.KernelConnectionProperties;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 
 public class IJava {
+    public static final String VERSION;
+
+    static {
+        InputStream metaStream = IJava.class.getClassLoader().getResourceAsStream("kernel-metadata.json");
+        Reader metaReader = new InputStreamReader(metaStream);
+        try {
+            JsonElement meta = new JsonParser().parse(metaReader);
+            VERSION = meta.getAsJsonObject().get("version").getAsString();
+        } finally {
+            try {
+                metaReader.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         if (args.length < 1)
             throw new IllegalArgumentException("Missing connection file argument");

@@ -26,6 +26,7 @@ task wrapper(type: Wrapper) {
 
 license {
     header = file('LICENSE')
+    exclude '**/*.json'
     mapping {
         // Use a regular multiline comment rather than a javadoc comment
         java = 'SLASHSTAR_STYLE'
@@ -50,7 +51,7 @@ repositories {
 }
 
 dependencies {
-    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '1.0.5-SNAPSHOT'
+    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '1.0.6-SNAPSHOT'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
@@ -61,7 +62,7 @@ jar {
             .collect {it.isDirectory() ? it : zipTree(it)}
 
     manifest {
-        attributes('Main-class': 'io.github.spencerpark.IJava')
+        attributes('Main-class': 'io.github.spencerpark.ijava.IJava')
     }
 }
 
