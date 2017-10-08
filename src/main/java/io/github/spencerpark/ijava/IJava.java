@@ -42,7 +42,7 @@ public class IJava {
     public static final String VERSION;
 
     static {
-        InputStream metaStream = IJava.class.getClassLoader().getResourceAsStream("kernel-metadata.json");
+        InputStream metaStream = IJava.class.getClassLoader().getResourceAsStream("ijava-kernel-metadata.json");
         Reader metaReader = new InputStreamReader(metaStream);
         try {
             JsonElement meta = new JsonParser().parse(metaReader);
