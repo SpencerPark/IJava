@@ -27,14 +27,16 @@ import io.github.spencerpark.jupyter.kernel.BaseKernel;
 import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
+import io.github.spencerpark.jupyter.kernel.util.StringStyler;
+import io.github.spencerpark.jupyter.kernel.util.TextColor;
 import io.github.spencerpark.jupyter.messages.Header;
 import io.github.spencerpark.jupyter.messages.MIMEBundle;
 import jdk.jshell.*;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class JavaKernel extends BaseKernel {
@@ -54,6 +56,8 @@ public class JavaKernel extends BaseKernel {
     private final LanguageInfo languageInfo;
     private final String banner;
     private final List<LanguageInfo.Help> helpLinks;
+
+    private final StringStyler errorStyler;
 
     public JavaKernel() {
         this.shell = JShell.builder()
@@ -79,6 +83,14 @@ public class JavaKernel extends BaseKernel {
                 new LanguageInfo.Help("Java tutorial", "https://docs.oracle.com/javase/tutorial/java/nutsandbolts/index.html"),
                 new LanguageInfo.Help("IJava homepage", "https://github.com/SpencerPark/IJava")
         );
+        this.errorStyler = new StringStyler.Builder()
+                .addPrimaryStyle(TextColor.BOLD_BLACK_FG)
+                .addSecondaryStyle(TextColor.BOLD_RED_FG)
+                .addHighlightStyle(TextColor.BOLD_BLACK_FG)
+                .addHighlightStyle(TextColor.RED_BG)
+                //TODO map snippet ids to code cells and put the proper line number in the margin here
+                .withLinePrefix(TextColor.BOLD_BLACK_FG + "|   ")
+                .build();
     }
 
     @Override
@@ -100,15 +112,41 @@ public class JavaKernel extends BaseKernel {
         return this.sourceAnalyzer.analyzeCompletion(source);
     }
 
-    private void printDiagnostics(Snippet snippet) {
-        this.shell.diagnostics(snippet)
-                .map(d -> d.getMessage(Locale.getDefault()))
-                .forEach(msg -> {
-                    for (String line : NEWLINE_PATTERN.split(msg)) {
-                        if (!line.trim().startsWith("location:"))
-                            System.err.println(line);
-                    }
-                });
+    @Override
+    public List<String> formatError(Exception e) {
+        List<String> fmt = new LinkedList<>();
+        if (e instanceof CompilationException) {
+            SnippetEvent event = ((CompilationException) e).getBadSnippetCompilation();
+            Snippet snippet = event.snippet();
+            this.shell.diagnostics(snippet)
+                    .forEach(d -> {
+                        fmt.addAll(this.errorStyler.highlightSubstringLines(snippet.source(),
+                                (int) d.getStartPosition(), (int) d.getEndPosition()));
+
+                        // Add the error message
+                        for (String line : StringStyler.splitLines(d.getMessage(null))) {
+                            // Skip the information about the location of the error as it is highlighted instead
+                            if (!line.trim().startsWith("location:"))
+                                fmt.add(this.errorStyler.secondary(line));
+                        }
+
+                        fmt.add(""); // Add a blank line
+                    });
+        } else if (e instanceof IncompleteSourceException) {
+            String source = ((IncompleteSourceException) e).getSource();
+            fmt.add(this.errorStyler.secondary("Incomplete input:"));
+            fmt.addAll(this.errorStyler.primaryLines(source));
+        } else if (e instanceof EvalException) {
+            String evalExceptionClassName = EvalException.class.getName();
+            String actualExceptionName = ((EvalException) e).getExceptionClassName();
+            super.formatError(e).stream()
+                    .map(line -> line.replace(evalExceptionClassName, actualExceptionName))
+                    .forEach(fmt::add);
+        } else {
+            fmt.addAll(super.formatError(e));
+        }
+
+        return fmt;
     }
 
     @Override
@@ -118,36 +156,30 @@ public class JavaKernel extends BaseKernel {
         for (info = analyzeCompletion(expr); info.completeness().isComplete(); info = analyzeCompletion(info.remaining())) {
             String src = info.source();
             for (SnippetEvent event : this.shell.eval(src)) {
+                // If fresh snippet
                 if (event.causeSnippet() == null) {
-                    // Fresh snippet
                     JShellException e = event.exception();
-                    if (e != null) {
-                        if (e instanceof EvalException) {
-                            System.err.println(((EvalException) e).getExceptionClassName());
-                            printDiagnostics(event.snippet());
-                        } else if (e instanceof UnresolvedReferenceException) {
-                            printDiagnostics(((UnresolvedReferenceException) e).getSnippet());
-                        }
-                        throw e;
-                    }
+                    if (e != null) throw e;
 
-                    if (!event.status().isDefined()) {
-                        printDiagnostics(event.snippet());
-                        throw new IllegalArgumentException("Cannot compile '" + event.snippet().source().trim() + "'");
-                    }
+                    if (!event.status().isDefined())
+                        throw new CompilationException(event);
 
-                    lastEvalResult = event.snippet().kind() == Snippet.Kind.EXPRESSION
-                            ? event.value()
-                            : null;
+                    switch (event.snippet().subKind()) {
+                        case VAR_VALUE_SUBKIND:
+                        case OTHER_EXPRESSION_SUBKIND:
+                        case TEMP_VAR_EXPRESSION_SUBKIND:
+                            lastEvalResult = event.value();
+                            break;
+                        default:
+                            lastEvalResult = null;
+                            break;
+                    }
                 }
             }
         }
 
-        if (info.completeness() != SourceCodeAnalysis.Completeness.EMPTY) {
-            // There is source that was not evaluated because it was not complete
-            // TODO raise a better exception
-            throw new IllegalArgumentException(String.format("Incomplete source code: '%s'", info.remaining()));
-        }
+        if (info.completeness() != SourceCodeAnalysis.Completeness.EMPTY)
+            throw new IncompleteSourceException(info.remaining().trim());
 
         return lastEvalResult == null || lastEvalResult.isEmpty() ? null : new MIMEBundle(lastEvalResult);
     }
