@@ -9,9 +9,15 @@ The kernel is currently working but there are some features that would be nice t
 Currently the kernel supports
 
 *   Code execution
-*   Autocompletion
-*   Code inspection
+    ![output](docs/img/output.png)
+*   Autocompletion (`TAB` in Jupyter notebook)
+    ![autocompletion](docs/img/autocompletion.png)
+*   Code inspection (`Shift-TAB` up to 4 times in Jupyter notebook)
+    ![code-inspection](docs/img/code-inspection.png)
 *   Colored, friendly, error message displays
+    ![compilation-error](docs/img/compilation-error.png)
+    ![incomplete-src-error](docs/img/incomplete-src-error.png)
+    ![runtime-error](docs/img/runtime-error.png)
 
 #### TODO
 
