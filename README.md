@@ -78,7 +78,29 @@ After meeting the [requirements](#requirements), the kernel can be installed loc
     On unix* `./gradlew installKernel`
         
     On windows `gradlew installKernel`
-    
+
+### Changing VM/compiler options
+
+To feed specific command line arguments to the compiler and JVM there are 2 environment variables that are checked when creating the shell.
+
+*   `IJAVA_VM_OPTS` is the variable name for the JVM options
+*   `IJAVA_COMPILER_OPTS` is the variable name for the compiler options
+
+These variables can be assigned in the `kernel.json` by adding/editing a JSON dictionary at the `env` key.
+
+For example to enable assertions:
+```JSON
+{
+  "argv": [ "java", "-jar", "...", "{connection_file}"],
+  "display_name": "Java",
+  "language": "java",
+  "env": {
+      "IJAVA_VM_OPTS": "-ea",
+      "IJAVA_COMPILER_OPTS" : ""
+  }
+}
+```
+
 ### Run
 
 This is where the documentation diverges, each environment has it's own way of selecting a kernel. To test from command line with Jupyter's console application run:

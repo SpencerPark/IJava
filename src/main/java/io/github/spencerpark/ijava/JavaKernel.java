@@ -33,15 +33,11 @@ import io.github.spencerpark.jupyter.messages.Header;
 import io.github.spencerpark.jupyter.messages.MIMEBundle;
 import jdk.jshell.*;
 
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class JavaKernel extends BaseKernel {
-    private static OutputStream stdout = new LazyOutputStreamDelegate(() -> System.out);
-    private static OutputStream stderr = new LazyOutputStreamDelegate(() -> System.err);
     private static final CharPredicate IDENTIFIER_CHAR = CharPredicate.builder()
             .inRange('a', 'z')
             .inRange('A', 'Z')
@@ -60,10 +56,7 @@ public class JavaKernel extends BaseKernel {
     private final StringStyler errorStyler;
 
     public JavaKernel() {
-        this.shell = JShell.builder()
-                .out(new PrintStream(stdout))
-                .err(new PrintStream(stderr))
-                .build();
+        this.shell = ShellBuilder.create();
         this.sourceAnalyzer = this.shell.sourceCodeAnalysis();
         this.languageInfo = new LanguageInfo.Builder("Java")
                 .version(Runtime.version().toString())

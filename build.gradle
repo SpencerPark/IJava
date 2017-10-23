@@ -18,7 +18,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'io.github.spencerpark.jupyter-kernel-installer'
 
 group 'io.github.spencerpark'
-version '1.0.1-SNAPSHOT'
+version '1.0.3-SNAPSHOT'
 
 task wrapper(type: Wrapper) {
     gradleVersion = '4.1'
