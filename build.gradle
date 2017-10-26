@@ -1,21 +1,12 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
-buildscript {
-    repositories {
-        mavenLocal()
-    }
-    dependencies {
-        classpath 'io.github.spencerpark:jupyter-kernel-installer:1.0.1'
-    }
-}
-
 plugins {
     id 'com.github.hierynomus.license' version '0.14.0'
+    id "io.github.spencerpark.jupyter-kernel-installer" version "1.0.2"
 }
 
 apply plugin: 'java'
 apply plugin: 'maven-publish'
-apply plugin: 'io.github.spencerpark.jupyter-kernel-installer'
 
 group 'io.github.spencerpark'
 version '1.0.3-SNAPSHOT'
