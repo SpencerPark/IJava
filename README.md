@@ -46,24 +46,40 @@ Currently the kernel supports
             ...
     ```
     then double check that `java` is referring to the command for the `jdk` and not the `jre`.
-    
-2.  [jupyter-jvm-basekernel](https://github.com/SpencerPark/jupyter-jvm-basekernel) 
+
+2.  [Jupyter-kernel-installer-gradle](https://github.com/SpencerPark/Jupyter-kernel-installer-gradle)
 
     The best way to install this dependency is to maven local. The `gradlew` command is a tool that will install the correct version of [Gradle](https://gradle.org/) if not already installed. There is no need to manually install anything.
-    
+
+    1.  Download the project.
+        ```bash
+        > git clone https://github.com/SpencerPark/Jupyter-kernel-installer-gradle.git --depth 1
+        > cd Jupyter-kernel-installer-gradle/
+        ```
+    2.  Build and install.
+
+        On unix `chmod u+x gradlew && ./gradlew publishToMavenLocal`
+
+        On windows `gradlew publishToMavenLocal`
+
+
+3.  [jupyter-jvm-basekernel](https://github.com/SpencerPark/jupyter-jvm-basekernel)
+
+    Same as before.
+
     1.  Download the project.
         ```bash
         > git clone https://github.com/SpencerPark/jupyter-jvm-basekernel.git --depth 1
         > cd jupyter-jvm-basekernel/
         ```
     2.  Build and install.
-    
-        On unix `./gradlew publishToMavenLocal`
-        
+
+        On unix `chmod u+x gradlew && ./gradlew publishToMavenLocal`
+
         On windows `gradlew publishToMavenLocal`
-        
-3.  Some jupyter-like environment to use the kernel in.
-        
+
+4.  Some jupyter-like environment to use the kernel in.
+
 ### Installing
 
 After meeting the [requirements](#requirements), the kernel can be installed locally.
@@ -74,9 +90,9 @@ After meeting the [requirements](#requirements), the kernel can be installed loc
     > cd IJava/
     ```
 2.  Build and install the kernel.
-    
-    On unix* `./gradlew installKernel`
-        
+
+    On unix* `chmod u+x gradlew && ./gradlew installKernel`
+
     On windows `gradlew installKernel`
 
 ### Changing VM/compiler options
