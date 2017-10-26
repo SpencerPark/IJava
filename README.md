@@ -58,7 +58,7 @@ Currently the kernel supports
         ```
     2.  Build and install.
     
-        On unix `./gradlew publishToMavenLocal`
+        On unix `chmod u+x gradlew && ./gradlew publishToMavenLocal`
         
         On windows `gradlew publishToMavenLocal`
         
@@ -75,7 +75,7 @@ After meeting the [requirements](#requirements), the kernel can be installed loc
     ```
 2.  Build and install the kernel.
     
-    On unix* `./gradlew installKernel`
+    On unix* `chmod u+x gradlew && ./gradlew installKernel`
         
     On windows `gradlew installKernel`
 
