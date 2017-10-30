@@ -125,6 +125,16 @@ public class JavaKernel extends BaseKernel {
 
                         fmt.add(""); // Add a blank line
                     });
+            if (snippet instanceof DeclarationSnippet) {
+                List<String> unresolvedDependencies = this.shell.unresolvedDependencies((DeclarationSnippet) snippet)
+                        .collect(Collectors.toList());
+                if (!unresolvedDependencies.isEmpty()) {
+                    fmt.addAll(this.errorStyler.primaryLines(snippet.source()));
+                    fmt.add(this.errorStyler.secondary("Unresolved dependencies:"));
+                    unresolvedDependencies.forEach(dep ->
+                            fmt.add(this.errorStyler.secondary("   - " + dep)));
+                }
+            }
         } else if (e instanceof IncompleteSourceException) {
             String source = ((IncompleteSourceException) e).getSource();
             fmt.add(this.errorStyler.secondary("Incomplete input:"));
