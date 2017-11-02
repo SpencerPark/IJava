@@ -27,6 +27,7 @@ import jdk.jshell.JShell;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,23 +40,37 @@ public class ShellBuilder {
     private static final OutputStream stdout = new LazyOutputStreamDelegate(() -> System.out);
     private static final OutputStream stderr = new LazyOutputStreamDelegate(() -> System.err);
 
-    public static JShell create() {
-        return create(Collections.emptyMap());
+    public static JShell create(boolean addCurrentToClasspath) {
+        return create(addCurrentToClasspath, Collections.emptyMap());
     }
 
-    public static JShell create(Map<String, String> envDefaults) {
+    public static JShell create(boolean addCurrentToClasspath, Map<String, String> envDefaults) {
         String vmOpts = System.getenv(VM_OPTS_KEY);
         if (vmOpts == null) vmOpts = envDefaults.getOrDefault(VM_OPTS_KEY, "");
 
         String compilerOpts = System.getenv(COMPILER_OPTS_KEY);
         if (compilerOpts == null) compilerOpts = envDefaults.getOrDefault(COMPILER_OPTS_KEY, "");
 
-        return JShell.builder()
+        JShell shell = JShell.builder()
                 .remoteVMOptions(split(vmOpts))
                 .compilerOptions(split(compilerOpts))
                 .out(new PrintStream(stdout))
                 .err(new PrintStream(stderr))
                 .build();
+
+        if (addCurrentToClasspath) {
+            try {
+                addCurrentToClasspath(shell);
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return shell;
+    }
+
+    private static void addCurrentToClasspath(JShell shell) throws URISyntaxException {
+        shell.addToClasspath(ShellBuilder.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
     }
 
     private static String[] split(String opts) {

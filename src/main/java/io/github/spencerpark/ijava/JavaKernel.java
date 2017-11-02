@@ -26,6 +26,9 @@ package io.github.spencerpark.ijava;
 import io.github.spencerpark.jupyter.kernel.BaseKernel;
 import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
+import io.github.spencerpark.jupyter.kernel.magic.CellMagicArgs;
+import io.github.spencerpark.jupyter.kernel.magic.LineMagicArgs;
+import io.github.spencerpark.jupyter.kernel.magic.MagicParser;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
 import io.github.spencerpark.jupyter.kernel.util.StringStyler;
 import io.github.spencerpark.jupyter.kernel.util.TextColor;
@@ -33,6 +36,7 @@ import io.github.spencerpark.jupyter.messages.Header;
 import io.github.spencerpark.jupyter.messages.MIMEBundle;
 import jdk.jshell.*;
 
+import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,7 +51,10 @@ public class JavaKernel extends BaseKernel {
     private static final CharPredicate WS = CharPredicate.anyOf(" \t\n\r");
 
     private final JShell shell;
+    private boolean isInitialized = false;
     private final SourceCodeAnalysis sourceAnalyzer;
+
+    private final MagicParser magicParser;
 
     private final LanguageInfo languageInfo;
     private final String banner;
@@ -56,8 +63,11 @@ public class JavaKernel extends BaseKernel {
     private final StringStyler errorStyler;
 
     public JavaKernel() {
-        this.shell = ShellBuilder.create();
+        this.shell = ShellBuilder.create(true);
         this.sourceAnalyzer = this.shell.sourceCodeAnalysis();
+
+        this.magicParser = new MagicParser("%", "%%");
+
         this.languageInfo = new LanguageInfo.Builder("Java")
                 .version(Runtime.version().toString())
                 .mimetype("text/x-java-source")
@@ -76,6 +86,7 @@ public class JavaKernel extends BaseKernel {
                 new LanguageInfo.Help("Java tutorial", "https://docs.oracle.com/javase/tutorial/java/nutsandbolts/index.html"),
                 new LanguageInfo.Help("IJava homepage", "https://github.com/SpencerPark/IJava")
         );
+
         this.errorStyler = new StringStyler.Builder()
                 .addPrimaryStyle(TextColor.BOLD_BLACK_FG)
                 .addSecondaryStyle(TextColor.BOLD_RED_FG)
@@ -99,6 +110,58 @@ public class JavaKernel extends BaseKernel {
     @Override
     public List<LanguageInfo.Help> getHelpLinks() {
         return this.helpLinks;
+    }
+
+    private void initShell() throws Exception {
+        this.isInitialized = true;
+
+        // The default shell imports
+        // TODO this should be configurable
+        eval("import java.util.*;");
+        eval("import java.io.*;");
+        eval("import java.math.*;");
+        eval("import java.net.*;");
+        eval("import java.util.concurrent.*;");
+        eval("import java.util.prefs.*;");
+        eval("import java.util.regex.*;");
+        eval("void printf(String format, Object... args) { System.out.printf(format, args); }");
+
+        // Magic support
+        eval("import io.github.spencerpark.jupyter.kernel.magic.registry.*;");
+        eval("import io.github.spencerpark.jupyter.kernel.magic.core.*;");
+
+        eval("Magics __MAGICS = new Magics();");
+        eval("__MAGICS.registerMagics(Shell.class);");
+        eval("__MAGICS.registerMagics(WriteFile.class);");
+
+        eval("<T> String __captureNull(T expr) { return expr == null ? \"__NO_MAGIC_RETURN\" : String.valueOf(expr); }");
+    }
+
+    private String b64Transform(String arg) {
+        String encoded = Base64.getEncoder().encodeToString(arg.getBytes());
+
+        return String.format("new String(Base64.getDecoder().decode(\"%s\"))", encoded);
+    }
+
+    private String transformLineMagic(LineMagicArgs args) {
+        return String.format(
+                "__MAGICS.applyLineMagic(%s,List.of(%s));",
+                this.b64Transform(args.getName()),
+                args.getArgs().stream()
+                        .map(this::b64Transform)
+                        .collect(Collectors.joining(","))
+        );
+    }
+
+    private String transformCellMagic(CellMagicArgs args) {
+        return String.format(
+                "__captureNull(__MAGICS.applyCellMagic(%s,List.of(%s),%s));",
+                this.b64Transform(args.getName()),
+                args.getArgs().stream()
+                        .map(this::b64Transform)
+                        .collect(Collectors.joining(",")),
+                this.b64Transform(args.getBody())
+        );
     }
 
     private SourceCodeAnalysis.CompletionInfo analyzeCompletion(String source) {
@@ -154,6 +217,11 @@ public class JavaKernel extends BaseKernel {
 
     @Override
     public MIMEBundle eval(String expr) throws Exception {
+        if (!this.isInitialized) this.initShell();
+
+        expr = this.magicParser.transformCellMagic(expr, this::transformCellMagic);
+        expr = this.magicParser.transformLineMagics(expr, this::transformLineMagic);
+
         String lastEvalResult = null;
         SourceCodeAnalysis.CompletionInfo info;
         for (info = analyzeCompletion(expr); info.completeness().isComplete(); info = analyzeCompletion(info.remaining())) {
@@ -172,6 +240,9 @@ public class JavaKernel extends BaseKernel {
                         case OTHER_EXPRESSION_SUBKIND:
                         case TEMP_VAR_EXPRESSION_SUBKIND:
                             lastEvalResult = event.value();
+                            if ("\"__NO_MAGIC_RETURN\"".equals(lastEvalResult))
+                                lastEvalResult = null;
+
                             break;
                         default:
                             lastEvalResult = null;

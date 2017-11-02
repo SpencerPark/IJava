@@ -9,7 +9,7 @@ apply plugin: 'java'
 apply plugin: 'maven-publish'
 
 group 'io.github.spencerpark'
-version '1.0.4-SNAPSHOT'
+version '1.0.5-SNAPSHOT'
 
 task wrapper(type: Wrapper) {
     gradleVersion = '4.1'
@@ -42,7 +42,7 @@ repositories {
 }
 
 dependencies {
-    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '1.0.6-SNAPSHOT'
+    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '1.1.1-SNAPSHOT'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
