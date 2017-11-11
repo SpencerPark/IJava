@@ -1,0 +1,11 @@
+import java.util.*;
+import java.io.*;
+import java.math.*;
+import java.net.*;
+import java.util.concurrent.*;
+import java.util.prefs.*;
+import java.util.regex.*;
+
+public void printf(String format, Object... args) {
+    System.out.printf(format, args);
+}

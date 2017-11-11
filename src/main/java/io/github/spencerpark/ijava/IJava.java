@@ -39,10 +39,24 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 
 public class IJava {
+    public static final String VM_OPTS_KEY = "IJAVA_VM_OPTS";
+    public static final String COMPILER_OPTS_KEY = "IJAVA_COMPILER_OPTS";
+    public static final String TIMEOUT_DURATION_MS_KEY = "IJAVA_TIMEOUT";
+    public static final String CLASSPATH_KEY = "IJAVA_CLASSPATH";
+    public static final String STARTUP_SCRIPTS_KEY = "IJAVA_STARTUP_SCRIPTS_PATH";
+    public static final String STARTUP_SCRIPT_KEY = "IJAVA_STARTUP_SCRIPT";
+
+    public static final String DEFAULT_SHELL_INIT_RESOURCE_PATH = "ijava-jshell-init.jshell";
+    public static final String MAGICS_INIT_RESOURCE_PATH = "ijava-magics-init.jshell";
+
     public static final String VERSION;
 
+    public static InputStream resource(String path) {
+        return IJava.class.getClassLoader().getResourceAsStream(path);
+    }
+
     static {
-        InputStream metaStream = IJava.class.getClassLoader().getResourceAsStream("ijava-kernel-metadata.json");
+        InputStream metaStream = resource("ijava-kernel-metadata.json");
         Reader metaReader = new InputStreamReader(metaStream);
         try {
             JsonElement meta = new JsonParser().parse(metaReader);

@@ -23,6 +23,7 @@
  */
 package io.github.spencerpark.ijava;
 
+import io.github.spencerpark.ijava.execution.*;
 import io.github.spencerpark.jupyter.kernel.BaseKernel;
 import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
@@ -36,6 +37,7 @@ import io.github.spencerpark.jupyter.messages.Header;
 import io.github.spencerpark.jupyter.messages.MIMEBundle;
 import jdk.jshell.*;
 
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
@@ -50,9 +52,7 @@ public class JavaKernel extends BaseKernel {
             .build();
     private static final CharPredicate WS = CharPredicate.anyOf(" \t\n\r");
 
-    private final JShell shell;
-    private boolean isInitialized = false;
-    private final SourceCodeAnalysis sourceAnalyzer;
+    private final CodeEvaluator evaluator;
 
     private final MagicParser magicParser;
 
@@ -63,8 +63,19 @@ public class JavaKernel extends BaseKernel {
     private final StringStyler errorStyler;
 
     public JavaKernel() {
-        this.shell = ShellBuilder.create(true);
-        this.sourceAnalyzer = this.shell.sourceCodeAnalysis();
+        this.evaluator = new CodeEvaluatorBuilder()
+                .addCurrentJarToClasspath()
+                .addClasspathFromString(System.getenv(IJava.CLASSPATH_KEY))
+                .vmOptsFromString(System.getenv(IJava.VM_OPTS_KEY))
+                .compilerOptsFromString(System.getenv(IJava.COMPILER_OPTS_KEY))
+                .startupScript(IJava.resource(IJava.DEFAULT_SHELL_INIT_RESOURCE_PATH))
+                .startupScript(IJava.resource(IJava.MAGICS_INIT_RESOURCE_PATH))
+                .startupScriptFiles(System.getenv(IJava.STARTUP_SCRIPTS_KEY))
+                .startupScript(System.getenv(IJava.STARTUP_SCRIPT_KEY))
+                .timeoutFromString(System.getenv(IJava.TIMEOUT_DURATION_MS_KEY))
+                .sysStdout()
+                .sysStderr()
+                .build();
 
         this.magicParser = new MagicParser("%", "%%");
 
@@ -112,31 +123,6 @@ public class JavaKernel extends BaseKernel {
         return this.helpLinks;
     }
 
-    private void initShell() throws Exception {
-        this.isInitialized = true;
-
-        // The default shell imports
-        // TODO this should be configurable
-        eval("import java.util.*;");
-        eval("import java.io.*;");
-        eval("import java.math.*;");
-        eval("import java.net.*;");
-        eval("import java.util.concurrent.*;");
-        eval("import java.util.prefs.*;");
-        eval("import java.util.regex.*;");
-        eval("void printf(String format, Object... args) { System.out.printf(format, args); }");
-
-        // Magic support
-        eval("import io.github.spencerpark.jupyter.kernel.magic.registry.*;");
-        eval("import io.github.spencerpark.jupyter.kernel.magic.core.*;");
-
-        eval("Magics __MAGICS = new Magics();");
-        eval("__MAGICS.registerMagics(Shell.class);");
-        eval("__MAGICS.registerMagics(WriteFile.class);");
-
-        eval("<T> String __captureNull(T expr) { return expr == null ? \"__NO_MAGIC_RETURN\" : String.valueOf(expr); }");
-    }
-
     private String b64Transform(String arg) {
         String encoded = Base64.getEncoder().encodeToString(arg.getBytes());
 
@@ -164,50 +150,17 @@ public class JavaKernel extends BaseKernel {
         );
     }
 
-    private SourceCodeAnalysis.CompletionInfo analyzeCompletion(String source) {
-        return this.sourceAnalyzer.analyzeCompletion(source);
-    }
-
     @Override
     public List<String> formatError(Exception e) {
         List<String> fmt = new LinkedList<>();
         if (e instanceof CompilationException) {
-            SnippetEvent event = ((CompilationException) e).getBadSnippetCompilation();
-            Snippet snippet = event.snippet();
-            this.shell.diagnostics(snippet)
-                    .forEach(d -> {
-                        fmt.addAll(this.errorStyler.highlightSubstringLines(snippet.source(),
-                                (int) d.getStartPosition(), (int) d.getEndPosition()));
-
-                        // Add the error message
-                        for (String line : StringStyler.splitLines(d.getMessage(null))) {
-                            // Skip the information about the location of the error as it is highlighted instead
-                            if (!line.trim().startsWith("location:"))
-                                fmt.add(this.errorStyler.secondary(line));
-                        }
-
-                        fmt.add(""); // Add a blank line
-                    });
-            if (snippet instanceof DeclarationSnippet) {
-                List<String> unresolvedDependencies = this.shell.unresolvedDependencies((DeclarationSnippet) snippet)
-                        .collect(Collectors.toList());
-                if (!unresolvedDependencies.isEmpty()) {
-                    fmt.addAll(this.errorStyler.primaryLines(snippet.source()));
-                    fmt.add(this.errorStyler.secondary("Unresolved dependencies:"));
-                    unresolvedDependencies.forEach(dep ->
-                            fmt.add(this.errorStyler.secondary("   - " + dep)));
-                }
-            }
+            return formatCompilationException((CompilationException) e);
         } else if (e instanceof IncompleteSourceException) {
-            String source = ((IncompleteSourceException) e).getSource();
-            fmt.add(this.errorStyler.secondary("Incomplete input:"));
-            fmt.addAll(this.errorStyler.primaryLines(source));
+            return formatIncompleteSourceException((IncompleteSourceException) e);
         } else if (e instanceof EvalException) {
-            String evalExceptionClassName = EvalException.class.getName();
-            String actualExceptionName = ((EvalException) e).getExceptionClassName();
-            super.formatError(e).stream()
-                    .map(line -> line.replace(evalExceptionClassName, actualExceptionName))
-                    .forEach(fmt::add);
+            return formatEvalException((EvalException) e);
+        } else if (e instanceof EvaluationTimeoutException) {
+            return formatEvaluationTimeoutException((EvaluationTimeoutException) e);
         } else {
             fmt.addAll(super.formatError(e));
         }
@@ -215,47 +168,78 @@ public class JavaKernel extends BaseKernel {
         return fmt;
     }
 
-    @Override
-    public MIMEBundle eval(String expr) throws Exception {
-        if (!this.isInitialized) this.initShell();
+    private List<String> formatCompilationException(CompilationException e) {
+        List<String> fmt = new ArrayList<>();
+        SnippetEvent event = e.getBadSnippetCompilation();
+        Snippet snippet = event.snippet();
+        this.evaluator.getShell().diagnostics(snippet)
+                .forEach(d -> {
+                    fmt.addAll(this.errorStyler.highlightSubstringLines(snippet.source(),
+                            (int) d.getStartPosition(), (int) d.getEndPosition()));
 
-        expr = this.magicParser.transformCellMagic(expr, this::transformCellMagic);
-        expr = this.magicParser.transformLineMagics(expr, this::transformLineMagic);
-
-        String lastEvalResult = null;
-        SourceCodeAnalysis.CompletionInfo info;
-        for (info = analyzeCompletion(expr); info.completeness().isComplete(); info = analyzeCompletion(info.remaining())) {
-            String src = info.source();
-            for (SnippetEvent event : this.shell.eval(src)) {
-                // If fresh snippet
-                if (event.causeSnippet() == null) {
-                    JShellException e = event.exception();
-                    if (e != null) throw e;
-
-                    if (!event.status().isDefined())
-                        throw new CompilationException(event);
-
-                    switch (event.snippet().subKind()) {
-                        case VAR_VALUE_SUBKIND:
-                        case OTHER_EXPRESSION_SUBKIND:
-                        case TEMP_VAR_EXPRESSION_SUBKIND:
-                            lastEvalResult = event.value();
-                            if ("\"__NO_MAGIC_RETURN\"".equals(lastEvalResult))
-                                lastEvalResult = null;
-
-                            break;
-                        default:
-                            lastEvalResult = null;
-                            break;
+                    // Add the error message
+                    for (String line : StringStyler.splitLines(d.getMessage(null))) {
+                        // Skip the information about the location of the error as it is highlighted instead
+                        if (!line.trim().startsWith("location:"))
+                            fmt.add(this.errorStyler.secondary(line));
                     }
-                }
+
+                    fmt.add(""); // Add a blank line
+                });
+        if (snippet instanceof DeclarationSnippet) {
+            List<String> unresolvedDependencies = this.evaluator.getShell().unresolvedDependencies((DeclarationSnippet) snippet)
+                    .collect(Collectors.toList());
+            if (!unresolvedDependencies.isEmpty()) {
+                fmt.addAll(this.errorStyler.primaryLines(snippet.source()));
+                fmt.add(this.errorStyler.secondary("Unresolved dependencies:"));
+                unresolvedDependencies.forEach(dep ->
+                        fmt.add(this.errorStyler.secondary("   - " + dep)));
             }
         }
 
-        if (info.completeness() != SourceCodeAnalysis.Completeness.EMPTY)
-            throw new IncompleteSourceException(info.remaining().trim());
+        return fmt;
+    }
 
-        return lastEvalResult == null || lastEvalResult.isEmpty() ? null : new MIMEBundle(lastEvalResult);
+    private List<String> formatIncompleteSourceException(IncompleteSourceException e) {
+        List<String> fmt = new ArrayList<>();
+
+        String source = e.getSource();
+        fmt.add(this.errorStyler.secondary("Incomplete input:"));
+        fmt.addAll(this.errorStyler.primaryLines(source));
+
+        return fmt;
+    }
+
+    private List<String> formatEvalException(EvalException e) {
+        List<String> fmt = new ArrayList<>();
+
+        String evalExceptionClassName = EvalException.class.getName();
+        String actualExceptionName = e.getExceptionClassName();
+        super.formatError(e).stream()
+                .map(line -> line.replace(evalExceptionClassName, actualExceptionName))
+                .forEach(fmt::add);
+
+        return fmt;
+    }
+
+    private List<String> formatEvaluationTimeoutException(EvaluationTimeoutException e) {
+        List<String> fmt = new ArrayList<>(this.errorStyler.primaryLines(e.getSource()));
+
+        fmt.add(this.errorStyler.secondary(String.format(
+                "Evaluation timed out after %d %s.",
+                e.getDuration(),
+                e.getUnit().name().toLowerCase())
+        ));
+
+        return fmt;
+    }
+
+    @Override
+    public MIMEBundle eval(String expr) throws Exception {
+        expr = this.magicParser.transformCellMagic(expr, this::transformCellMagic);
+        expr = this.magicParser.transformLineMagics(expr, this::transformLineMagic);
+
+        return this.evaluator.eval(expr);
     }
 
     @Override
@@ -270,7 +254,7 @@ public class JavaKernel extends BaseKernel {
         while (parenIdx + 1 < code.length() && WS.test(code.charAt(parenIdx + 1))) parenIdx++;
         if (parenIdx + 1 < code.length() && code.charAt(parenIdx + 1) == '(') at = parenIdx + 1;
 
-        List<SourceCodeAnalysis.Documentation> documentations = this.sourceAnalyzer.documentation(code, at + 1, true);
+        List<SourceCodeAnalysis.Documentation> documentations = this.evaluator.getShell().sourceCodeAnalysis().documentation(code, at + 1, true);
         if (documentations == null || documentations.isEmpty()) {
             return null;
         }
@@ -308,7 +292,7 @@ public class JavaKernel extends BaseKernel {
     @Override
     public ReplacementOptions complete(String code, int at) {
         int[] replaceStart = new int[1]; // As of now this is always the same as the cursor...
-        List<SourceCodeAnalysis.Suggestion> suggestions = this.sourceAnalyzer.completionSuggestions(code, at, replaceStart);
+        List<SourceCodeAnalysis.Suggestion> suggestions = this.evaluator.getShell().sourceCodeAnalysis().completionSuggestions(code, at, replaceStart);
         if (suggestions == null || suggestions.isEmpty()) return null;
 
         List<String> options = suggestions.stream()
@@ -331,6 +315,6 @@ public class JavaKernel extends BaseKernel {
 
     @Override
     public void onShutdown(boolean isRestarting) {
-        this.shell.close();
+        this.evaluator.shutdown();
     }
 }

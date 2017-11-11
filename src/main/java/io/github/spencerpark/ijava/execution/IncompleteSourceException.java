@@ -21,36 +21,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.github.spencerpark.ijava;
+package io.github.spencerpark.ijava.execution;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.function.Supplier;
+public class IncompleteSourceException extends Exception {
+    private final String source;
 
-public class LazyOutputStreamDelegate extends OutputStream {
-    private final Supplier<OutputStream> writeTo;
-
-    public LazyOutputStreamDelegate(Supplier<OutputStream> writeTo) {
-        this.writeTo = writeTo;
+    public IncompleteSourceException(String source) {
+        this.source = source;
     }
 
-    @Override
-    public void write(int b) throws IOException {
-        this.writeTo.get().write(b);
-    }
-
-    @Override
-    public void write(byte[] b) throws IOException {
-        this.writeTo.get().write(b);
-    }
-
-    @Override
-    public void write(byte[] b, int off, int len) throws IOException {
-        this.writeTo.get().write(b, off, len);
-    }
-
-    @Override
-    public void flush() throws IOException {
-        this.writeTo.get().flush();
+    public String getSource() {
+        return source;
     }
 }

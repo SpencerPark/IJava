@@ -4,7 +4,19 @@ A [Jupyter](http://jupyter.org/) kernel for executing Java code. The kernel exec
 
 The kernel is currently working but there are some features that would be nice to have. There is a [TODO list](#todo) of planned features but any additional requests for new ones or prioritizing current ones are welcomed in the [issues](https://github.com/SpencerPark/IJava/issues).
 
-#### Features
+### Contents
+
+*   [Features](#features)
+    *   [TODO](#todo)
+*   [Requirements](#requirements)
+*   [Installing](#installing)
+*   [Configuring](#configuring)
+    *   [List of options](#list-of-options)
+    *   [Changing VM/compiler options](#changing-vmcompiler-options)
+    *   [Configuring startup scripts](#configuring-startup-scripts)
+*   [Run](#run)
+
+### Features
 
 Currently the kernel supports
 
@@ -79,7 +91,36 @@ After meeting the [requirements](#requirements), the kernel can be installed loc
         
     On windows `gradlew installKernel`
 
-### Changing VM/compiler options
+### Configuring
+
+Configuring the kernel can be done via environment variables. These can be set on the system or inside the `kernel.json`. To find where the kernel is installed run
+
+```bash
+> jupyter kernelspec list
+Available kernels:
+  java           .../kernels/java
+  python3        .../python35/share/jupyter/kernels/python3
+```
+
+and the `kernel.json` file will be in the given directory.
+
+#### List of options
+
+`IJAVA_VM_OPTS` - **default: `""`** - A space delimited list of command line options that would be passed to the `java` command if running code. For example `-Xmx128m` to set a limit on the heap size or `-ea` to enable `assert` statements. 
+
+`IJAVA_COMPILER_OPTS` - **default: `""`** - A space delimited list of command line options that would be passed to the `javac` command when compiling a project. For example `-parameters` to enable retaining parameter names for reflection.
+
+`IJAVA_TIMEOUT` - **default: `"-1"`** - A duration in milliseconds specifying a timeout on long running code. If less than zero the timeout is disabled.
+
+`IJAVA_CLASSPATH` - **default: `""`** - A file path separator delimited list of classpath entries that should be available to the user code.
+
+`IJAVA_STARTUP_SCRIPTS_PATH` - **default: `""`** - A file path seperator delimited list of `.jshell` scripts to run on startup. This includes [ijava-jshell-init.jshell](src/main/resources/ijava-jshell-init.jshell) and [ijava-magics-init.jshell](src/main/resources/ijava-magics-init.jshell).
+
+`IJAVA_STARTUP_SCRIPT` - **default: `""`** - A block of java code to run when the kernel starts up. This may be something like `import my.utils;` to setup some default imports or even `void sleep(long time) { try {Thread.sleep(time)} catch (InterruptedException e) {}}` to declare a default utility method to use in the notebook.
+
+#### Changing VM/compiler options
+
+See the [List of options](#list-of-options) section for all of the configuration options.
 
 To feed specific command line arguments to the compiler and JVM there are 2 environment variables that are checked when creating the shell.
 
@@ -88,16 +129,38 @@ To feed specific command line arguments to the compiler and JVM there are 2 envi
 
 These variables can be assigned in the `kernel.json` by adding/editing a JSON dictionary at the `env` key.
 
-For example to enable assertions:
-```JSON
+For example to enable assertions, set a limit on the heap size, and enable parameter names in reflection:
+
+```diff
 {
-  "argv": [ "java", "-jar", "...", "{connection_file}"],
+  "argv": [ "java", "-jar", "{connection_file}"],
   "display_name": "Java",
-  "language": "java",
-  "env": {
-      "IJAVA_VM_OPTS": "-ea",
-      "IJAVA_COMPILER_OPTS" : ""
-  }
+- "language": "java"
++ "language": "java", 
++ "env": {
++     "IJAVA_VM_OPTS": "-ea -Xmx128m",
++     "IJAVA_COMPILER_OPTS" : "-parameter"
++ }
+}
+```
+
+#### Configuring startup scripts
+
+See the [List of options](#list-of-options) section for all of the configuration options.
+
+To setup a startup script such as an `init.jshell` script, set the `IJAVA_STARTUP_SCRIPTS_PATH` to `init.jshell` in the `kernel.json`. This will try to execute an `init.jshell` script in the same directory as the notebook.
+
+If desired use an absolute path to use a global init file.
+
+```diff
+{
+  "argv": [ "java", "-jar", "{connection_file}"],
+  "display_name": "Java",
+- "language": "java"
++ "language": "java", 
++ "env": {
++     "IJAVA_STARTUP_SCRIPTS_PATH": "init.jshell"
++ }
 }
 ```
 
