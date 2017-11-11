@@ -30,6 +30,8 @@ Currently the kernel supports
     ![compilation-error](docs/img/compilation-error.png)
     ![incomplete-src-error](docs/img/incomplete-src-error.png)
     ![runtime-error](docs/img/runtime-error.png)
+*   Configurable evaluation timeout
+    ![timeout](docs/img/timeout.png)
 
 #### TODO
 
