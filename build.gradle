@@ -2,7 +2,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
     id 'com.github.hierynomus.license' version '0.14.0'
-    id "io.github.spencerpark.jupyter-kernel-installer" version "1.0.3"
+    id "io.github.spencerpark.jupyter-kernel-installer" version "1.1.5"
 }
 
 apply plugin: 'java'
@@ -75,6 +75,8 @@ publishing {
 }
 
 jupyter {
+    kernelName = 'java'
     kernelDisplayName = 'Java'
     kernelLanguage = 'java'
+    kernelInterruptMode = 'message'
 }
