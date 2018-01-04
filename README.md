@@ -1,11 +1,14 @@
 # IJava
 
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?filepath=%2Fhome%2Fjovyan%2FHelloWorld.ipynb)
+
 A [Jupyter](http://jupyter.org/) kernel for executing Java code. The kernel executes code via the new [JShell tool](https://docs.oracle.com/javase/9/jshell/introduction-jshell.htm). Some of the additional commands should be supported in the future via a syntax similar to the ipython magics.
 
 The kernel is currently working but there are some features that would be nice to have. There is a [TODO list](#todo) of planned features but any additional requests for new ones or prioritizing current ones are welcomed in the [issues](https://github.com/SpencerPark/IJava/issues).
 
 ### Contents
 
+*   [Try online](#try-online)
 *   [Features](#features)
     *   [TODO](#todo)
 *   [Requirements](#requirements)
@@ -15,6 +18,10 @@ The kernel is currently working but there are some features that would be nice t
     *   [Changing VM/compiler options](#changing-vmcompiler-options)
     *   [Configuring startup scripts](#configuring-startup-scripts)
 *   [Run](#run)
+
+### Try Online
+
+Clicking on the [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?filepath=%2Fhome%2Fjovyan%2FHelloWorld.ipynb) badge at the top (or right here) will spawn a jupyter server running this kernel. The binder base is the [ijava-binder project](https://github.com/SpencerPark/ijava-binder).
 
 ### Features
 
