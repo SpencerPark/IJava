@@ -23,7 +23,7 @@
  */
 package io.github.spencerpark.ijava.execution;
 
-import io.github.spencerpark.jupyter.messages.MIMEBundle;
+import io.github.spencerpark.jupyter.messages.DisplayData;
 import jdk.jshell.JShell;
 import jdk.jshell.JShellException;
 import jdk.jshell.SnippetEvent;
@@ -92,7 +92,7 @@ public class CodeEvaluator {
         return result;
     }
 
-    public MIMEBundle eval(String code) throws Exception {
+    public DisplayData eval(String code) throws Exception {
         // The init() method runs some code in the shell to initialize the environment. As such
         // it is deferred until the first user requested evaluation to cleanly return errors when
         // they happen.
@@ -110,7 +110,7 @@ public class CodeEvaluator {
         if (info.completeness() != SourceCodeAnalysis.Completeness.EMPTY)
             throw new IncompleteSourceException(info.remaining().trim());
 
-        return lastEvalResult == null || lastEvalResult.isEmpty() ? null : new MIMEBundle(lastEvalResult);
+        return lastEvalResult == null || lastEvalResult.isEmpty() ? null : new DisplayData(lastEvalResult);
     }
 
     public void interrupt() {
