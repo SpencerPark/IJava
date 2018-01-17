@@ -34,7 +34,7 @@ import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
 import io.github.spencerpark.jupyter.kernel.util.StringStyler;
 import io.github.spencerpark.jupyter.kernel.util.TextColor;
 import io.github.spencerpark.jupyter.messages.Header;
-import io.github.spencerpark.jupyter.messages.MIMEBundle;
+import io.github.spencerpark.jupyter.messages.DisplayData;
 import jdk.jshell.*;
 
 import java.util.ArrayList;
@@ -235,7 +235,7 @@ public class JavaKernel extends BaseKernel {
     }
 
     @Override
-    public MIMEBundle eval(String expr) throws Exception {
+    public DisplayData eval(String expr) throws Exception {
         expr = this.magicParser.transformCellMagic(expr, this::transformCellMagic);
         expr = this.magicParser.transformLineMagics(expr, this::transformLineMagic);
 
@@ -243,7 +243,7 @@ public class JavaKernel extends BaseKernel {
     }
 
     @Override
-    public MIMEBundle inspect(String code, int at, boolean extraDetail) {
+    public DisplayData inspect(String code, int at, boolean extraDetail) {
         // Move the code position to the end of the identifier to make the inspection work at any
         // point in the identifier. i.e "System.o|ut" or "System.out|" will return the same result.
         while (at + 1 < code.length() && IDENTIFIER_CHAR.test(code.charAt(at + 1))) at++;
@@ -259,7 +259,7 @@ public class JavaKernel extends BaseKernel {
             return null;
         }
 
-        MIMEBundle fmtDocs = new MIMEBundle(
+        DisplayData fmtDocs = new DisplayData(
                 documentations.stream()
                         .map(doc -> {
                             String formatted = doc.signature();
