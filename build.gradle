@@ -9,7 +9,7 @@ apply plugin: 'java'
 apply plugin: 'maven-publish'
 
 group 'io.github.spencerpark'
-version '1.0.6-SNAPSHOT'
+version '1.0.7-SNAPSHOT'
 
 task wrapper(type: Wrapper) {
     gradleVersion = '4.2.1'

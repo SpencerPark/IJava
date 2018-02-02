@@ -236,8 +236,8 @@ public class JavaKernel extends BaseKernel {
 
     @Override
     public DisplayData eval(String expr) throws Exception {
-        expr = this.magicParser.transformCellMagic(expr, this::transformCellMagic);
-        expr = this.magicParser.transformLineMagics(expr, this::transformLineMagic);
+        //expr = this.magicParser.transformCellMagic(expr, this::transformCellMagic);
+        //expr = this.magicParser.transformLineMagics(expr, this::transformLineMagic);
 
         return this.evaluator.eval(expr);
     }
