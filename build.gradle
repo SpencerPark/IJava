@@ -8,8 +8,8 @@ plugins {
 apply plugin: 'java'
 apply plugin: 'maven-publish'
 
-group 'io.github.spencerpark'
-version '1.0.7-SNAPSHOT'
+group = 'io.github.spencerpark'
+version = '1.0.8-SNAPSHOT'
 
 task wrapper(type: Wrapper) {
     gradleVersion = '4.2.1'
@@ -32,12 +32,16 @@ compileJava {
 
 configurations {
     shade
-    shade.transitive = false
+    // transitive true to make sure that the dependencies of shade dependencies also get shaded
+    // into the jar
+    shade.transitive = true
     compile.extendsFrom(shade)
 }
 
 repositories {
-    mavenLocal()
+    maven {
+        url = 'https://oss.sonatype.org/content/repositories/snapshots/'
+    }
     mavenCentral()
 }
 

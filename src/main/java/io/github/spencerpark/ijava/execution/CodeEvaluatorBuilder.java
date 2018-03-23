@@ -40,6 +40,7 @@ public class CodeEvaluatorBuilder {
 
     private static final OutputStream STDOUT = new LazyOutputStreamDelegate(() -> System.out);
     private static final OutputStream STDERR = new LazyOutputStreamDelegate(() -> System.err);
+    private static final InputStream STDIN = new LazyInputStreamDelegate(() -> System.in);
 
     private long timeout;
     private TimeUnit timeoutUnit;
@@ -48,6 +49,7 @@ public class CodeEvaluatorBuilder {
     private final List<String> compilerOpts;
     private PrintStream out;
     private PrintStream err;
+    private InputStream in;
     private List<String> startupScripts;
 
     public CodeEvaluatorBuilder() {
@@ -115,12 +117,21 @@ public class CodeEvaluatorBuilder {
         return this;
     }
 
+    public CodeEvaluatorBuilder stdin(InputStream in) {
+        this.in = in;
+        return this;
+    }
+
     public CodeEvaluatorBuilder sysStdout() {
         return this.stdout(new PrintStream(CodeEvaluatorBuilder.STDOUT));
     }
 
     public CodeEvaluatorBuilder sysStderr() {
         return this.stderr(new PrintStream(CodeEvaluatorBuilder.STDERR));
+    }
+
+    public CodeEvaluatorBuilder sysStdin() {
+        return this.stdin(CodeEvaluatorBuilder.STDIN);
     }
 
     public CodeEvaluatorBuilder startupScript(String script) {
@@ -188,6 +199,7 @@ public class CodeEvaluatorBuilder {
         JShell.Builder builder = JShell.builder();
         if (this.out != null) builder.out(this.out);
         if (this.err != null) builder.err(this.err);
+        if (this.in != null) builder.in(this.in);
 
         JShell shell = builder
                 .remoteVMOptions(this.vmOpts.toArray(new String[this.vmOpts.size()]))

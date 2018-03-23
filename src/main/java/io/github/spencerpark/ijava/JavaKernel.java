@@ -75,6 +75,7 @@ public class JavaKernel extends BaseKernel {
                 .timeoutFromString(System.getenv(IJava.TIMEOUT_DURATION_MS_KEY))
                 .sysStdout()
                 .sysStderr()
+                .sysStdin()
                 .build();
 
         this.magicParser = new MagicParser("%", "%%");

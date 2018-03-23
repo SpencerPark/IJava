@@ -53,4 +53,9 @@ public class LazyOutputStreamDelegate extends OutputStream {
     public void flush() throws IOException {
         this.writeTo.get().flush();
     }
+
+    @Override
+    public void close() throws IOException {
+        this.writeTo.get().close();
+    }
 }
