@@ -95,10 +95,6 @@ public class CodeEvaluator {
             }
         }
 
-        System.out.println("shouldReturnResult: " + shouldReturnResult);
-        if (result != null)
-            System.out.println("Got object: " + result.getClass().getSimpleName() + "=" + String.valueOf(result));
-        System.out.println(executionControl);
         return shouldReturnResult ? result : null;
     }
 

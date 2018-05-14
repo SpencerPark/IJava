@@ -239,7 +239,12 @@ public class JavaKernel extends BaseKernel {
         //expr = this.magicParser.transformCellMagic(expr, this::transformCellMagic);
         //expr = this.magicParser.transformLineMagics(expr, this::transformLineMagic);
 
-        return new DisplayData(String.valueOf(this.evaluator.eval(expr)));
+        Object result = this.evaluator.eval(expr);
+
+        if (result != null)
+            return new DisplayData(String.valueOf(this.evaluator.eval(expr)));
+
+        return null;
     }
 
     @Override
