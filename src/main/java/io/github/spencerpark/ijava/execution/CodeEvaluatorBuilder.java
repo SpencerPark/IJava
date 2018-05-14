@@ -181,6 +181,9 @@ public class CodeEvaluatorBuilder {
         Map<String, String> executionControlParams = new LinkedHashMap<>();
         executionControlParams.put(IJavaExecutionControlProvider.REGISTRATION_ID_KEY, executionControlID);
 
+        if (this.timeout > 0)
+            executionControlParams.put(IJavaExecutionControlProvider.TIMEOUT_KEY, String.format("%d %s", this.timeout, this.timeoutUnit.name()));
+
         JShell.Builder builder = JShell.builder();
         if (this.out != null) builder.out(this.out);
         if (this.err != null) builder.err(this.err);
@@ -194,11 +197,7 @@ public class CodeEvaluatorBuilder {
         for (String cp : this.classpath)
             shell.addToClasspath(cp);
 
-        if (timeout > 0L) {
-            return new CodeEvaluatorWithTimeout(shell, executionControlProvider, executionControlID, this.startupScripts, this.timeout, this.timeoutUnit);
-        } else {
-            return new CodeEvaluator(shell, executionControlProvider, executionControlID, this.startupScripts);
-        }
+        return new CodeEvaluator(shell, executionControlProvider, executionControlID, this.startupScripts);
     }
 
     private static List<String> split(String opts) {

@@ -23,10 +23,7 @@
  */
 package io.github.spencerpark.ijava.execution;
 
-import jdk.jshell.JShell;
-import jdk.jshell.JShellException;
-import jdk.jshell.SnippetEvent;
-import jdk.jshell.SourceCodeAnalysis;
+import jdk.jshell.*;
 
 import java.util.List;
 
@@ -76,7 +73,11 @@ public class CodeEvaluator {
             // If fresh snippet
             if (event.causeSnippet() == null) {
                 JShellException e = event.exception();
-                if (e != null) throw e;
+                if (e != null) {
+                    if (e instanceof EvalException && IJavaExecutionControl.EXECUTION_TIMEOUT_NAME.equals(((EvalException) e).getExceptionClassName()))
+                        throw new EvaluationTimeoutException(executionControl.getTimeoutDuration(), executionControl.getTimeoutUnit(), code.trim());
+                    throw e;
+                }
 
                 if (!event.status().isDefined())
                     throw new CompilationException(event);
@@ -97,6 +98,7 @@ public class CodeEvaluator {
         System.out.println("shouldReturnResult: " + shouldReturnResult);
         if (result != null)
             System.out.println("Got object: " + result.getClass().getSimpleName() + "=" + String.valueOf(result));
+        System.out.println(executionControl);
         return shouldReturnResult ? result : null;
     }
 
