@@ -70,7 +70,7 @@ public class JavaKernel extends BaseKernel {
                 .startupScript(IJava.resource(IJava.MAGICS_INIT_RESOURCE_PATH))
                 .startupScriptFiles(System.getenv(IJava.STARTUP_SCRIPTS_KEY))
                 .startupScript(System.getenv(IJava.STARTUP_SCRIPT_KEY))
-                .timeoutFromString(System.getenv(IJava.TIMEOUT_DURATION_MS_KEY))
+                .timeoutFromString(System.getenv(IJava.TIMEOUT_DURATION_KEY))
                 .sysStdout()
                 .sysStderr()
                 .sysStdin()

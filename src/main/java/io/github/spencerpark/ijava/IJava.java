@@ -40,7 +40,7 @@ import java.util.logging.Level;
 
 public class IJava {
     public static final String COMPILER_OPTS_KEY = "IJAVA_COMPILER_OPTS";
-    public static final String TIMEOUT_DURATION_MS_KEY = "IJAVA_TIMEOUT";
+    public static final String TIMEOUT_DURATION_KEY = "IJAVA_TIMEOUT";
     public static final String CLASSPATH_KEY = "IJAVA_CLASSPATH";
     public static final String STARTUP_SCRIPTS_KEY = "IJAVA_STARTUP_SCRIPTS_PATH";
     public static final String STARTUP_SCRIPT_KEY = "IJAVA_STARTUP_SCRIPT";

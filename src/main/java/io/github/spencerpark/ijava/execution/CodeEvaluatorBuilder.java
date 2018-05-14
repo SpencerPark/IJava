@@ -42,8 +42,7 @@ public class CodeEvaluatorBuilder {
     private static final OutputStream STDERR = new LazyOutputStreamDelegate(() -> System.err);
     private static final InputStream STDIN = new LazyInputStreamDelegate(() -> System.in);
 
-    private long timeout;
-    private TimeUnit timeoutUnit;
+    private String timeout;
     private final Set<String> classpath;
     private final List<String> compilerOpts;
     private PrintStream out;
@@ -52,7 +51,6 @@ public class CodeEvaluatorBuilder {
     private List<String> startupScripts;
 
     public CodeEvaluatorBuilder() {
-        this.timeoutUnit = TimeUnit.MILLISECONDS;
         this.classpath = new LinkedHashSet<>();
         this.compilerOpts = new LinkedList<>();
         this.startupScripts = new LinkedList<>();
@@ -65,14 +63,12 @@ public class CodeEvaluatorBuilder {
     }
 
     public CodeEvaluatorBuilder timeoutFromString(String timeout) {
-        if (timeout == null) return this;
-        return this.timeout(Long.parseLong(timeout), TimeUnit.MILLISECONDS);
+        this.timeout = timeout;
+        return this;
     }
 
     public CodeEvaluatorBuilder timeout(long timeout, TimeUnit timeoutUnit) {
-        this.timeout = timeout;
-        this.timeoutUnit = timeoutUnit;
-        return this;
+        return this.timeoutFromString(String.format("%d %s", timeout, timeoutUnit.name()));
     }
 
     public CodeEvaluatorBuilder compilerOptsFromString(String opts) {
@@ -167,7 +163,7 @@ public class CodeEvaluatorBuilder {
             return this;
 
         try {
-            String script = new String(Files.readAllBytes(file));
+            String script = new String(Files.readAllBytes(file), "UTF-8");
             this.startupScripts.add(script);
         } catch (IOException ignore) { }
 
@@ -181,8 +177,8 @@ public class CodeEvaluatorBuilder {
         Map<String, String> executionControlParams = new LinkedHashMap<>();
         executionControlParams.put(IJavaExecutionControlProvider.REGISTRATION_ID_KEY, executionControlID);
 
-        if (this.timeout > 0)
-            executionControlParams.put(IJavaExecutionControlProvider.TIMEOUT_KEY, String.format("%d %s", this.timeout, this.timeoutUnit.name()));
+        if (this.timeout != null)
+            executionControlParams.put(IJavaExecutionControlProvider.TIMEOUT_KEY, this.timeout);
 
         JShell.Builder builder = JShell.builder();
         if (this.out != null) builder.out(this.out);

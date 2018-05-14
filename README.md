@@ -115,41 +115,35 @@ and the `kernel.json` file will be in the given directory.
 
 #### List of options
 
-`IJAVA_VM_OPTS` - **default: `""`** - A space delimited list of command line options that would be passed to the `java` command if running code. For example `-Xmx128m` to set a limit on the heap size or `-ea` to enable `assert` statements. 
-
 `IJAVA_COMPILER_OPTS` - **default: `""`** - A space delimited list of command line options that would be passed to the `javac` command when compiling a project. For example `-parameters` to enable retaining parameter names for reflection.
 
-`IJAVA_TIMEOUT` - **default: `"-1"`** - A duration in milliseconds specifying a timeout on long running code. If less than zero the timeout is disabled.
+`IJAVA_TIMEOUT` - **default: `"-1"`** - A duration specifying a timeout (in milliseconds by default) for a _single top level statement_. If less than `1` then there is no timeout. If desired a time may be specified with a [`TimeUnit`](https://docs.oracle.com/javase/9/docs/api/java/util/concurrent/TimeUnit.html) may be given following the duration number (ex `"30 SECONDS"`).
 
 `IJAVA_CLASSPATH` - **default: `""`** - A file path separator delimited list of classpath entries that should be available to the user code.
 
 `IJAVA_STARTUP_SCRIPTS_PATH` - **default: `""`** - A file path seperator delimited list of `.jshell` scripts to run on startup. This includes [ijava-jshell-init.jshell](src/main/resources/ijava-jshell-init.jshell) and [ijava-magics-init.jshell](src/main/resources/ijava-magics-init.jshell).
 
-`IJAVA_STARTUP_SCRIPT` - **default: `""`** - A block of java code to run when the kernel starts up. This may be something like `import my.utils;` to setup some default imports or even `void sleep(long time) { try {Thread.sleep(time)} catch (InterruptedException e) {}}` to declare a default utility method to use in the notebook.
+`IJAVA_STARTUP_SCRIPT` - **default: `""`** - A block of java code to run when the kernel starts up. This may be something like `import my.utils;` to setup some default imports or even `void sleep(long time) { try {Thread.sleep(time); } catch (InterruptedException e) { throw new RuntimeException(e); }}` to declare a default utility method to use in the notebook.
 
 #### Changing VM/compiler options
 
 See the [List of options](#list-of-options) section for all of the configuration options.
 
-To feed specific command line arguments to the compiler and JVM there are 2 environment variables that are checked when creating the shell.
+To change compiler options use the `IJAVA_COMPILER_OPTS` environment variable with a string of flags as if running the `javac` command.
 
-*   `IJAVA_VM_OPTS` is the variable name for the JVM options
-*   `IJAVA_COMPILER_OPTS` is the variable name for the compiler options
+The `IJAVA_COMPILER_OPTS` and kernel VM parameters can be assigned in the `kernel.json` by adding/editing a JSON dictionary at the `env` key and changing the `argv` list.
 
-These variables can be assigned in the `kernel.json` by adding/editing a JSON dictionary at the `env` key.
-
-For example to enable assertions, set a limit on the heap size, and enable parameter names in reflection:
+For example to enable assertions, set a limit on the heap size to `128m`, and enable parameter names in reflection:
 
 ```diff
 {
-  "argv": [ "java", "-jar", "{connection_file}"],
+- "argv": [ "java", "-jar", "{connection_file}"],
++ "argv": [ "java", "-ea", "-Xmx128m", "-jar", "{connection_file}"],
   "display_name": "Java",
-- "language": "java"
-+ "language": "java", 
-+ "env": {
-+     "IJAVA_VM_OPTS": "-ea -Xmx128m",
+  "language": "java",
+  "env": {
 +     "IJAVA_COMPILER_OPTS" : "-parameter"
-+ }
+  }
 }
 ```
 
@@ -165,12 +159,10 @@ If desired use an absolute path to use a global init file.
 {
   "argv": [ "java", "-jar", "{connection_file}"],
   "display_name": "Java",
-- "language": "java"
-+ "language": "java", 
-+ "env": {
+  "language": "java",
+  "env": {
 +     "IJAVA_STARTUP_SCRIPTS_PATH": "init.jshell"
-+ }
-}
+  }
 ```
 
 ### Run
