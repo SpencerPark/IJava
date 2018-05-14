@@ -5,4 +5,6 @@ Magics __MAGICS = new Magics();
 __MAGICS.registerMagics(Shell.class);
 __MAGICS.registerMagics(WriteFile.class);
 
-<T> String __captureNull(T expr) { return expr == null ? "__NO_MAGIC_RETURN" : String.valueOf(expr); }
+<T> String __captureNull(T expr) {
+    return expr == null ? "__NO_MAGIC_RETURN" : String.valueOf(expr);
+}

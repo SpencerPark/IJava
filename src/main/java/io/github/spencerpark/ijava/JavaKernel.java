@@ -33,8 +33,8 @@ import io.github.spencerpark.jupyter.kernel.magic.MagicParser;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
 import io.github.spencerpark.jupyter.kernel.util.StringStyler;
 import io.github.spencerpark.jupyter.kernel.util.TextColor;
-import io.github.spencerpark.jupyter.messages.Header;
 import io.github.spencerpark.jupyter.messages.DisplayData;
+import io.github.spencerpark.jupyter.messages.Header;
 import jdk.jshell.*;
 
 import java.util.ArrayList;
@@ -64,9 +64,7 @@ public class JavaKernel extends BaseKernel {
 
     public JavaKernel() {
         this.evaluator = new CodeEvaluatorBuilder()
-                .addCurrentJarToClasspath()
                 .addClasspathFromString(System.getenv(IJava.CLASSPATH_KEY))
-                .vmOptsFromString(System.getenv(IJava.VM_OPTS_KEY))
                 .compilerOptsFromString(System.getenv(IJava.COMPILER_OPTS_KEY))
                 .startupScript(IJava.resource(IJava.DEFAULT_SHELL_INIT_RESOURCE_PATH))
                 .startupScript(IJava.resource(IJava.MAGICS_INIT_RESOURCE_PATH))
@@ -214,6 +212,7 @@ public class JavaKernel extends BaseKernel {
     private List<String> formatEvalException(EvalException e) {
         List<String> fmt = new ArrayList<>();
 
+
         String evalExceptionClassName = EvalException.class.getName();
         String actualExceptionName = e.getExceptionClassName();
         super.formatError(e).stream()
@@ -240,7 +239,7 @@ public class JavaKernel extends BaseKernel {
         //expr = this.magicParser.transformCellMagic(expr, this::transformCellMagic);
         //expr = this.magicParser.transformLineMagics(expr, this::transformLineMagic);
 
-        return this.evaluator.eval(expr);
+        return new DisplayData(String.valueOf(this.evaluator.eval(expr)));
     }
 
     @Override

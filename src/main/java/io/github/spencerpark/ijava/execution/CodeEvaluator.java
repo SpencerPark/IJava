@@ -23,7 +23,6 @@
  */
 package io.github.spencerpark.ijava.execution;
 
-import io.github.spencerpark.jupyter.messages.DisplayData;
 import jdk.jshell.JShell;
 import jdk.jshell.JShellException;
 import jdk.jshell.SnippetEvent;
@@ -35,13 +34,17 @@ public class CodeEvaluator {
     private static final String NO_MAGIC_RETURN = "\"__NO_MAGIC_RETURN\"";
 
     private final JShell shell;
+    private final IJavaExecutionControlProvider executionControlProvider;
+    private final String executionControlID;
     private final SourceCodeAnalysis sourceAnalyzer;
 
     private boolean isInitialized = false;
     private final List<String> startupScripts;
 
-    public CodeEvaluator(JShell shell, List<String> startupScripts) {
+    public CodeEvaluator(JShell shell, IJavaExecutionControlProvider executionControlProvider, String executionControlID, List<String> startupScripts) {
         this.shell = shell;
+        this.executionControlProvider = executionControlProvider;
+        this.executionControlID = executionControlID;
         this.sourceAnalyzer = this.shell.sourceCodeAnalysis();
         this.startupScripts = startupScripts;
     }
@@ -61,10 +64,15 @@ public class CodeEvaluator {
         this.startupScripts.clear();
     }
 
-    protected String evalSingle(String code) throws Exception {
-        String result = null;
+    protected Object evalSingle(String code) throws Exception {
+        IJavaExecutionControl executionControl =
+                this.executionControlProvider.getRegisteredControlByID(this.executionControlID);
 
-        for (SnippetEvent event : this.shell.eval(code)) {
+        List<SnippetEvent> events = this.shell.eval(code);
+        Object result = executionControl.getLastResultOrDefault(null);
+
+        boolean shouldReturnResult = false;
+        for (SnippetEvent event : events) {
             // If fresh snippet
             if (event.causeSnippet() == null) {
                 JShellException e = event.exception();
@@ -77,22 +85,22 @@ public class CodeEvaluator {
                     case VAR_VALUE_SUBKIND:
                     case OTHER_EXPRESSION_SUBKIND:
                     case TEMP_VAR_EXPRESSION_SUBKIND:
-                        result = event.value();
-                        if (NO_MAGIC_RETURN.equals(result))
-                            result = null;
-
+                        shouldReturnResult = !NO_MAGIC_RETURN.equals(event.value());
                         break;
                     default:
-                        result = null;
+                        shouldReturnResult = false;
                         break;
                 }
             }
         }
 
-        return result;
+        System.out.println("shouldReturnResult: " + shouldReturnResult);
+        if (result != null)
+            System.out.println("Got object: " + result.getClass().getSimpleName() + "=" + String.valueOf(result));
+        return shouldReturnResult ? result : null;
     }
 
-    public DisplayData eval(String code) throws Exception {
+    public Object eval(String code) throws Exception {
         // The init() method runs some code in the shell to initialize the environment. As such
         // it is deferred until the first user requested evaluation to cleanly return errors when
         // they happen.
@@ -101,7 +109,7 @@ public class CodeEvaluator {
             init();
         }
 
-        String lastEvalResult = null;
+        Object lastEvalResult = null;
         SourceCodeAnalysis.CompletionInfo info;
 
         for (info = this.sourceAnalyzer.analyzeCompletion(code); info.completeness().isComplete(); info = analyzeCompletion(info.remaining()))
@@ -110,7 +118,7 @@ public class CodeEvaluator {
         if (info.completeness() != SourceCodeAnalysis.Completeness.EMPTY)
             throw new IncompleteSourceException(info.remaining().trim());
 
-        return lastEvalResult == null || lastEvalResult.isEmpty() ? null : new DisplayData(lastEvalResult);
+        return lastEvalResult;
     }
 
     public void interrupt() {

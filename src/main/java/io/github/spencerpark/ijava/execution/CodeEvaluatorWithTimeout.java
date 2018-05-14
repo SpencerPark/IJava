@@ -33,15 +33,15 @@ public class CodeEvaluatorWithTimeout extends CodeEvaluator {
     private final TimeUnit timeoutUnit;
     private final ExecutorService executor;
 
-    public CodeEvaluatorWithTimeout(JShell shell, List<String> startupScripts, long timeout, TimeUnit timeoutUnit) {
-        super(shell, startupScripts);
+    public CodeEvaluatorWithTimeout(JShell shell, IJavaExecutionControlProvider executionControlProvider, String executionControlID, List<String> startupScripts, long timeout, TimeUnit timeoutUnit) {
+        super(shell, executionControlProvider, executionControlID, startupScripts);
         this.timeout = timeout;
         this.timeoutUnit = timeoutUnit;
         this.executor = Executors.newSingleThreadExecutor();
     }
 
     @Override
-    protected String evalSingle(String code) throws Exception {
+    protected Object evalSingle(String code) throws Exception {
         try {
             return executor.submit(() -> super.evalSingle(code)).get(timeout, timeoutUnit);
         } catch (ExecutionException e) {
