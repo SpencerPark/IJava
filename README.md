@@ -6,6 +6,8 @@ A [Jupyter](http://jupyter.org/) kernel for executing Java code. The kernel exec
 
 The kernel is currently working but there are some features that would be nice to have. There is a [TODO list](#todo) of planned features but any additional requests for new ones or prioritizing current ones are welcomed in the [issues](https://github.com/SpencerPark/IJava/issues).
 
+If you are interested in building your own kernel that runs on the JVM check out the related project that this kernel is build on, [jupyter-jvm-basekernel](https://github.com/SpencerPark/jupyter-jvm-basekernel).
+
 ### Contents
 
 *   [Try online](#try-online)
@@ -68,22 +70,13 @@ Currently the kernel supports
     ```
     then double check that `java` is referring to the command for the `jdk` and not the `jre`.
     
-2.  [jupyter-jvm-basekernel](https://github.com/SpencerPark/jupyter-jvm-basekernel) 
+2.  Some jupyter-like environment to use the kernel in.
 
-    The best way to install this dependency is to maven local. The `gradlew` command is a tool that will install the correct version of [Gradle](https://gradle.org/) if not already installed. There is no need to manually install anything.
-    
-    1.  Download the project.
-        ```bash
-        > git clone https://github.com/SpencerPark/jupyter-jvm-basekernel.git --depth 1
-        > cd jupyter-jvm-basekernel/
-        ```
-    2.  Build and install.
-    
-        On unix `chmod u+x gradlew && ./gradlew publishToMavenLocal`
-        
-        On windows `gradlew publishToMavenLocal`
-        
-3.  Some jupyter-like environment to use the kernel in.
+    A non-exhaustive list of options:
+
+    *   [Jupyter](http://jupyter.org/install) - main option
+    *   [JupyterLab](http://jupyterlab.readthedocs.io/en/stable/getting_started/installation.html)
+    *   [nteract](https://nteract.io/desktop)
         
 ### Installing
 
@@ -96,7 +89,7 @@ After meeting the [requirements](#requirements), the kernel can be installed loc
     ```
 2.  Build and install the kernel.
     
-    On unix* `chmod u+x gradlew && ./gradlew installKernel`
+    On *nix `chmod u+x gradlew && ./gradlew installKernel`
         
     On windows `gradlew installKernel`
 
