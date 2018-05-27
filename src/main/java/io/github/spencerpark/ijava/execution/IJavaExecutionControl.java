@@ -28,7 +28,9 @@ import jdk.jshell.execution.DirectExecutionControl;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.*;
 
 /**
@@ -42,8 +44,7 @@ public class IJavaExecutionControl extends DirectExecutionControl {
      */
     public static final String EXECUTION_TIMEOUT_NAME = "Execution Timeout"; // Has spaces to not collide with a class name
 
-    private static final Object UNSET = new Object();
-    private static final Object EXCEPTION_OCCURRED = new Object();
+    private static final Object NULL = new Object();
 
     private final ExecutorService executor;
 
@@ -52,7 +53,7 @@ public class IJavaExecutionControl extends DirectExecutionControl {
 
     private volatile Future<Object> runningTask;
 
-    private volatile Object lastResult = UNSET;
+    private final Map<String, Object> results = new ConcurrentHashMap<>();
 
     public IJavaExecutionControl() {
         this(-1, TimeUnit.MILLISECONDS);
@@ -72,30 +73,13 @@ public class IJavaExecutionControl extends DirectExecutionControl {
         return timeoutUnit;
     }
 
-    public Object getLastResult() {
-        Object lastResult = this.lastResult;
-        if (lastResult == UNSET)
-            throw new IllegalStateException("Nothing has been executed yet.");
-        else if (lastResult == EXCEPTION_OCCURRED)
-            throw new IllegalStateException("Last execution resulted in an exception.");
-        return lastResult;
+    public Object takeResult(String key) {
+        Object result = this.results.remove(key);
+        if (result == null)
+            throw new IllegalStateException("No result with key: " + key);
+        return result == NULL ? null : result;
     }
 
-    public Object getLastResultOrDefault(Object def) {
-        Object lastResult = this.lastResult;
-        if (lastResult == UNSET || lastResult == EXCEPTION_OCCURRED)
-            return def;
-        return lastResult;
-    }
-
-    /**
-     * @param doitMethod
-     *
-     * @return
-     *
-     * @throws TimeoutException
-     * @throws Exception
-     */
     private Object execute(Method doitMethod) throws TimeoutException, Exception {
         this.runningTask = this.executor.submit(() -> doitMethod.invoke(null));
 
@@ -128,16 +112,22 @@ public class IJavaExecutionControl extends DirectExecutionControl {
         }
     }
 
+    /**
+     * This method was hijacked and actually only returns a key that can be
+     * later retrieved via {@link #takeResult(String)}. This should be called
+     * for every invocation as the objects are saved and not taking them will
+     * leak the memory.
+     * <p></p>
+     * {@inheritDoc}
+     *
+     * @returns the key to use for {@link #takeResult(String) looking up the result}.
+     */
     @Override
     protected String invoke(Method doitMethod) throws Exception {
-        try {
-            Object value = this.execute(doitMethod);
-            this.lastResult = value;
-            return valueString(value);
-        } catch (Exception e) {
-            this.lastResult = EXCEPTION_OCCURRED;
-            throw e;
-        }
+        Object value = this.execute(doitMethod);
+        String id = UUID.randomUUID().toString();
+        this.results.put(id, value);
+        return id;
     }
 
     @Override
@@ -151,8 +141,6 @@ public class IJavaExecutionControl extends DirectExecutionControl {
         return "IJavaExecutionControl{" +
                 "timeoutTime=" + timeoutTime +
                 ", timeoutUnit=" + timeoutUnit +
-                ", lastResult=" +
-                (lastResult == UNSET ? "unset" : lastResult == EXCEPTION_OCCURRED ? "exception occurred" : String.valueOf(lastResult)) +
                 '}';
     }
 }

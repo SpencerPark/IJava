@@ -66,9 +66,28 @@ public class CodeEvaluator {
                 this.executionControlProvider.getRegisteredControlByID(this.executionControlID);
 
         List<SnippetEvent> events = this.shell.eval(code);
-        Object result = executionControl.getLastResultOrDefault(null);
 
-        boolean shouldReturnResult = false;
+        Object result = null;
+
+        // We iterate twice to make sure throwing an early exception doesn't leak the memory
+        // and we `takeResult` everything.
+        for (SnippetEvent event : events) {
+            String key = event.value();
+            if (key == null) continue;
+
+            Object value = executionControl.takeResult(key);
+            switch (event.snippet().subKind()) {
+                case VAR_VALUE_SUBKIND:
+                case OTHER_EXPRESSION_SUBKIND:
+                case TEMP_VAR_EXPRESSION_SUBKIND:
+                    result = NO_MAGIC_RETURN.equals(value) ? null : value;
+                    break;
+                default:
+                    result = null;
+                    break;
+            }
+        }
+
         for (SnippetEvent event : events) {
             // If fresh snippet
             if (event.causeSnippet() == null) {
@@ -81,21 +100,10 @@ public class CodeEvaluator {
 
                 if (!event.status().isDefined())
                     throw new CompilationException(event);
-
-                switch (event.snippet().subKind()) {
-                    case VAR_VALUE_SUBKIND:
-                    case OTHER_EXPRESSION_SUBKIND:
-                    case TEMP_VAR_EXPRESSION_SUBKIND:
-                        shouldReturnResult = !NO_MAGIC_RETURN.equals(event.value());
-                        break;
-                    default:
-                        shouldReturnResult = false;
-                        break;
-                }
             }
         }
 
-        return shouldReturnResult ? result : null;
+        return result;
     }
 
     public Object eval(String code) throws Exception {
