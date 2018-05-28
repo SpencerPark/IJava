@@ -2,7 +2,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
     id 'com.github.hierynomus.license' version '0.14.0'
-    id "io.github.spencerpark.jupyter-kernel-installer" version "1.1.5"
+    id 'io.github.spencerpark.jupyter-kernel-installer' version '1.1.5'
 }
 
 apply plugin: 'java'
@@ -43,10 +43,11 @@ repositories {
         url = 'https://oss.sonatype.org/content/repositories/snapshots/'
     }
     mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
-    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.0.0-SNAPSHOT'
+    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.1.1-SNAPSHOT'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }

@@ -1,0 +1,15 @@
+void display(Object o) {
+    io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
+    if (kernel != null) {
+        io.github.spencerpark.jupyter.kernel.display.DisplayData data = kernel.getRenderer().render(o);
+        kernel.display(data);
+    }
+}
+
+void display(Object o, String... as) {
+    io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
+    if (kernel != null) {
+        io.github.spencerpark.jupyter.kernel.display.DisplayData data = kernel.getRenderer().renderAs(o, as);
+        kernel.display(data);
+    }
+}

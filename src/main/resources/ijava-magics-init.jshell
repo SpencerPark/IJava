@@ -1,5 +1,5 @@
+import io.github.spencerpark.jupyter.kernel.magic.common.*;
 import io.github.spencerpark.jupyter.kernel.magic.registry.*;
-import io.github.spencerpark.jupyter.kernel.magic.core.*;
 
 Magics __MAGICS = new Magics();
 __MAGICS.registerMagics(Shell.class);

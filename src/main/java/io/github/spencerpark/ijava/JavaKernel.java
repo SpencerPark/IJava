@@ -27,13 +27,13 @@ import io.github.spencerpark.ijava.execution.*;
 import io.github.spencerpark.jupyter.kernel.BaseKernel;
 import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
+import io.github.spencerpark.jupyter.kernel.display.DisplayData;
 import io.github.spencerpark.jupyter.kernel.magic.CellMagicArgs;
 import io.github.spencerpark.jupyter.kernel.magic.LineMagicArgs;
 import io.github.spencerpark.jupyter.kernel.magic.MagicParser;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
 import io.github.spencerpark.jupyter.kernel.util.StringStyler;
 import io.github.spencerpark.jupyter.kernel.util.TextColor;
-import io.github.spencerpark.jupyter.messages.DisplayData;
 import io.github.spencerpark.jupyter.messages.Header;
 import jdk.jshell.*;
 
@@ -68,6 +68,7 @@ public class JavaKernel extends BaseKernel {
                 .compilerOptsFromString(System.getenv(IJava.COMPILER_OPTS_KEY))
                 .startupScript(IJava.resource(IJava.DEFAULT_SHELL_INIT_RESOURCE_PATH))
                 .startupScript(IJava.resource(IJava.MAGICS_INIT_RESOURCE_PATH))
+                .startupScript(IJava.resource(IJava.DISPLAY_INIT_RESOURCE_PATH))
                 .startupScriptFiles(System.getenv(IJava.STARTUP_SCRIPTS_KEY))
                 .startupScript(System.getenv(IJava.STARTUP_SCRIPT_KEY))
                 .timeoutFromString(System.getenv(IJava.TIMEOUT_DURATION_KEY))
@@ -242,7 +243,7 @@ public class JavaKernel extends BaseKernel {
         Object result = this.evaluator.eval(expr);
 
         if (result != null)
-            return new DisplayData(String.valueOf(result));
+            return this.getRenderer().render(result);
 
         return null;
     }

@@ -47,6 +47,7 @@ public class IJava {
 
     public static final String DEFAULT_SHELL_INIT_RESOURCE_PATH = "ijava-jshell-init.jshell";
     public static final String MAGICS_INIT_RESOURCE_PATH = "ijava-magics-init.jshell";
+    public static final String DISPLAY_INIT_RESOURCE_PATH = "ijava-display-init.jshell";
 
     public static final String VERSION;
 
