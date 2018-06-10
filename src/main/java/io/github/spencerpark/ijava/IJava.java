@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Spencer Park
+ * Copyright (c) 2018 Spencer Park
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,9 +39,8 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 
 public class IJava {
-    public static final String VM_OPTS_KEY = "IJAVA_VM_OPTS";
     public static final String COMPILER_OPTS_KEY = "IJAVA_COMPILER_OPTS";
-    public static final String TIMEOUT_DURATION_MS_KEY = "IJAVA_TIMEOUT";
+    public static final String TIMEOUT_DURATION_KEY = "IJAVA_TIMEOUT";
     public static final String CLASSPATH_KEY = "IJAVA_CLASSPATH";
     public static final String STARTUP_SCRIPTS_KEY = "IJAVA_STARTUP_SCRIPTS_PATH";
     public static final String STARTUP_SCRIPT_KEY = "IJAVA_STARTUP_SCRIPT";
@@ -70,6 +69,20 @@ public class IJava {
         }
     }
 
+    private static JavaKernel kernel = null;
+
+    /**
+     * Obtain a reference to the kernel created by running {@link #main(String[])}. This
+     * kernel may be null if one is not present but as the main use for this method is
+     * for the kernel user code to access kernel services.
+     *
+     * @return the kernel created by running {@link #main(String[])} or {@code null} if
+     *         one has not yet (or already created and finished) been created.
+     */
+    public static JavaKernel getKernelInstance() {
+        return IJava.kernel;
+    }
+
     public static void main(String[] args) throws Exception {
         if (args.length < 1)
             throw new IllegalArgumentException("Missing connection file argument");
@@ -86,10 +99,14 @@ public class IJava {
         KernelConnectionProperties connProps = KernelConnectionProperties.parse(contents);
         JupyterConnection connection = new JupyterConnection(connProps);
 
-        JavaKernel kernel = new JavaKernel();
+        kernel = new JavaKernel();
         kernel.becomeHandlerForConnection(connection);
 
         connection.connect();
         connection.waitUntilClose();
+
+        kernel = null;
+
+        System.exit(0);
     }
 }

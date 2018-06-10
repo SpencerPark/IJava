@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Spencer Park
+ * Copyright (c) 2018 Spencer Park
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,8 +33,8 @@ import io.github.spencerpark.jupyter.kernel.magic.MagicParser;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
 import io.github.spencerpark.jupyter.kernel.util.StringStyler;
 import io.github.spencerpark.jupyter.kernel.util.TextColor;
-import io.github.spencerpark.jupyter.messages.Header;
 import io.github.spencerpark.jupyter.messages.DisplayData;
+import io.github.spencerpark.jupyter.messages.Header;
 import jdk.jshell.*;
 
 import java.util.ArrayList;
@@ -64,15 +64,13 @@ public class JavaKernel extends BaseKernel {
 
     public JavaKernel() {
         this.evaluator = new CodeEvaluatorBuilder()
-                .addCurrentJarToClasspath()
                 .addClasspathFromString(System.getenv(IJava.CLASSPATH_KEY))
-                .vmOptsFromString(System.getenv(IJava.VM_OPTS_KEY))
                 .compilerOptsFromString(System.getenv(IJava.COMPILER_OPTS_KEY))
                 .startupScript(IJava.resource(IJava.DEFAULT_SHELL_INIT_RESOURCE_PATH))
                 .startupScript(IJava.resource(IJava.MAGICS_INIT_RESOURCE_PATH))
                 .startupScriptFiles(System.getenv(IJava.STARTUP_SCRIPTS_KEY))
                 .startupScript(System.getenv(IJava.STARTUP_SCRIPT_KEY))
-                .timeoutFromString(System.getenv(IJava.TIMEOUT_DURATION_MS_KEY))
+                .timeoutFromString(System.getenv(IJava.TIMEOUT_DURATION_KEY))
                 .sysStdout()
                 .sysStderr()
                 .sysStdin()
@@ -214,6 +212,7 @@ public class JavaKernel extends BaseKernel {
     private List<String> formatEvalException(EvalException e) {
         List<String> fmt = new ArrayList<>();
 
+
         String evalExceptionClassName = EvalException.class.getName();
         String actualExceptionName = e.getExceptionClassName();
         super.formatError(e).stream()
@@ -240,7 +239,12 @@ public class JavaKernel extends BaseKernel {
         //expr = this.magicParser.transformCellMagic(expr, this::transformCellMagic);
         //expr = this.magicParser.transformLineMagics(expr, this::transformLineMagic);
 
-        return this.evaluator.eval(expr);
+        Object result = this.evaluator.eval(expr);
+
+        if (result != null)
+            return new DisplayData(String.valueOf(result));
+
+        return null;
     }
 
     @Override
