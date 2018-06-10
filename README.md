@@ -39,10 +39,11 @@ Currently the kernel supports
     ![runtime-error](docs/img/runtime-error.png)
 *   Configurable evaluation timeout
     ![timeout](docs/img/timeout.png)
+*   Display rich output (See also [display.md](docs/display.md))
+    ![display-img](docs/img/display-img.png)
 
 #### TODO
 
-- [ ] Display additional media types like images or audio.
 - [ ] Support magics for making queries about the current environment.
 - [ ] Compile javadocs when displaying introspection requests as html.
 - [ ] Support loading maven dependencies at runtime.
@@ -121,7 +122,7 @@ and the `kernel.json` file will be in the given directory.
 
 `IJAVA_CLASSPATH` - **default: `""`** - A file path separator delimited list of classpath entries that should be available to the user code.
 
-`IJAVA_STARTUP_SCRIPTS_PATH` - **default: `""`** - A file path seperator delimited list of `.jshell` scripts to run on startup. This includes [ijava-jshell-init.jshell](src/main/resources/ijava-jshell-init.jshell) and [ijava-magics-init.jshell](src/main/resources/ijava-magics-init.jshell).
+`IJAVA_STARTUP_SCRIPTS_PATH` - **default: `""`** - A file path seperator delimited list of `.jshell` scripts to run on startup. This includes [ijava-jshell-init.jshell](src/main/resources/ijava-jshell-init.jshell) and [ijava-display-init.jshell](src/main/resources/ijava-display-init.jshell).
 
 `IJAVA_STARTUP_SCRIPT` - **default: `""`** - A block of java code to run when the kernel starts up. This may be something like `import my.utils;` to setup some default imports or even `void sleep(long time) { try {Thread.sleep(time); } catch (InterruptedException e) { throw new RuntimeException(e); }}` to declare a default utility method to use in the notebook.
 
