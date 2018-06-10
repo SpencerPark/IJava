@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Spencer Park
+ * Copyright (c) 2018 Spencer Park
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,10 +42,8 @@ public class CodeEvaluatorBuilder {
     private static final OutputStream STDERR = new LazyOutputStreamDelegate(() -> System.err);
     private static final InputStream STDIN = new LazyInputStreamDelegate(() -> System.in);
 
-    private long timeout;
-    private TimeUnit timeoutUnit;
+    private String timeout;
     private final Set<String> classpath;
-    private final List<String> vmOpts;
     private final List<String> compilerOpts;
     private PrintStream out;
     private PrintStream err;
@@ -53,9 +51,7 @@ public class CodeEvaluatorBuilder {
     private List<String> startupScripts;
 
     public CodeEvaluatorBuilder() {
-        this.timeoutUnit = TimeUnit.MILLISECONDS;
         this.classpath = new LinkedHashSet<>();
-        this.vmOpts = new LinkedList<>();
         this.compilerOpts = new LinkedList<>();
         this.startupScripts = new LinkedList<>();
     }
@@ -66,34 +62,13 @@ public class CodeEvaluatorBuilder {
         return this;
     }
 
-    public CodeEvaluatorBuilder addCurrentJarToClasspath() {
-        try {
-            return this.addClasspathFromString(CodeEvaluatorBuilder.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
-        } catch (Exception e) {
-            throw new IllegalStateException("Cannot add current jar to classpath: " + e.getMessage(), e);
-        }
-    }
-
     public CodeEvaluatorBuilder timeoutFromString(String timeout) {
-        if (timeout == null) return this;
-        return this.timeout(Long.parseLong(timeout), TimeUnit.MILLISECONDS);
+        this.timeout = timeout;
+        return this;
     }
 
     public CodeEvaluatorBuilder timeout(long timeout, TimeUnit timeoutUnit) {
-        this.timeout = timeout;
-        this.timeoutUnit = timeoutUnit;
-        return this;
-    }
-
-    public CodeEvaluatorBuilder vmOptsFromString(String opts) {
-        if (opts == null) return this;
-        this.vmOpts.addAll(split(opts));
-        return this;
-    }
-
-    public CodeEvaluatorBuilder vmOpts(String... opts) {
-        Collections.addAll(this.vmOpts, opts);
-        return this;
+        return this.timeoutFromString(String.format("%d %s", timeout, timeoutUnit.name()));
     }
 
     public CodeEvaluatorBuilder compilerOptsFromString(String opts) {
@@ -188,7 +163,7 @@ public class CodeEvaluatorBuilder {
             return this;
 
         try {
-            String script = new String(Files.readAllBytes(file));
+            String script = new String(Files.readAllBytes(file), "UTF-8");
             this.startupScripts.add(script);
         } catch (IOException ignore) { }
 
@@ -196,24 +171,29 @@ public class CodeEvaluatorBuilder {
     }
 
     public CodeEvaluator build() {
+        IJavaExecutionControlProvider executionControlProvider = new IJavaExecutionControlProvider();
+
+        String executionControlID = UUID.randomUUID().toString();
+        Map<String, String> executionControlParams = new LinkedHashMap<>();
+        executionControlParams.put(IJavaExecutionControlProvider.REGISTRATION_ID_KEY, executionControlID);
+
+        if (this.timeout != null)
+            executionControlParams.put(IJavaExecutionControlProvider.TIMEOUT_KEY, this.timeout);
+
         JShell.Builder builder = JShell.builder();
         if (this.out != null) builder.out(this.out);
         if (this.err != null) builder.err(this.err);
         if (this.in != null) builder.in(this.in);
 
         JShell shell = builder
-                .remoteVMOptions(this.vmOpts.toArray(new String[this.vmOpts.size()]))
-                .compilerOptions(this.compilerOpts.toArray(new String[this.compilerOpts.size()]))
+                .executionEngine(executionControlProvider, executionControlParams)
+                .compilerOptions(this.compilerOpts.toArray(new String[0]))
                 .build();
 
         for (String cp : this.classpath)
             shell.addToClasspath(cp);
 
-        if (timeout > 0L) {
-            return new CodeEvaluatorWithTimeout(shell, this.startupScripts, this.timeout, this.timeoutUnit);
-        } else {
-            return new CodeEvaluator(shell, this.startupScripts);
-        }
+        return new CodeEvaluator(shell, executionControlProvider, executionControlID, this.startupScripts);
     }
 
     private static List<String> split(String opts) {
