@@ -23,6 +23,7 @@
  */
 package io.github.spencerpark.ijava.execution;
 
+import io.github.spencerpark.jupyter.kernel.util.GlobFinder;
 import jdk.jshell.JShell;
 
 import java.io.*;
@@ -43,7 +44,7 @@ public class CodeEvaluatorBuilder {
     private static final InputStream STDIN = new LazyInputStreamDelegate(() -> System.in);
 
     private String timeout;
-    private final Set<String> classpath;
+    private final List<String> classpath;
     private final List<String> compilerOpts;
     private PrintStream out;
     private PrintStream err;
@@ -51,14 +52,14 @@ public class CodeEvaluatorBuilder {
     private List<String> startupScripts;
 
     public CodeEvaluatorBuilder() {
-        this.classpath = new LinkedHashSet<>();
+        this.classpath = new LinkedList<>();
         this.compilerOpts = new LinkedList<>();
         this.startupScripts = new LinkedList<>();
     }
 
     public CodeEvaluatorBuilder addClasspathFromString(String classpath) {
         if (classpath == null) return this;
-        this.classpath.add(classpath);
+        Collections.addAll(this.classpath, PATH_SPLITTER.split(classpath));
         return this;
     }
 
@@ -145,27 +146,34 @@ public class CodeEvaluatorBuilder {
     public CodeEvaluatorBuilder startupScriptFiles(String paths) {
         if (paths == null) return this;
 
-        for (String path : PATH_SPLITTER.split(paths))
-            startupScriptFile(path);
+        for (String glob : PATH_SPLITTER.split(paths)) {
+            GlobFinder resolver = new GlobFinder(glob);
+            try {
+                for (Path path : resolver.computeMatchingPaths())
+                    this.startupScriptFile(path);
+            } catch (IOException e) {
+                throw new RuntimeException(String.format("IOException while computing startup scripts for '%s': %s", glob, e.getMessage()), e);
+            }
+        }
 
         return this;
     }
 
-    public CodeEvaluatorBuilder startupScriptFile(String path) {
+    public CodeEvaluatorBuilder startupScriptFile(Path path) {
         if (path == null) return this;
 
-        Path file = Paths.get(path);
-
-        if (!Files.isRegularFile(file))
+        if (!Files.isRegularFile(path))
             return this;
 
-        if (!Files.isReadable(file))
+        if (!Files.isReadable(path))
             return this;
 
         try {
-            String script = new String(Files.readAllBytes(file), "UTF-8");
+            String script = new String(Files.readAllBytes(path), "UTF-8");
             this.startupScripts.add(script);
-        } catch (IOException ignore) { }
+        } catch (IOException e) {
+            throw new RuntimeException(String.format("IOException while loading startup script for '%s': %s", path, e.getMessage()), e);
+        }
 
         return this;
     }
@@ -190,8 +198,15 @@ public class CodeEvaluatorBuilder {
                 .compilerOptions(this.compilerOpts.toArray(new String[0]))
                 .build();
 
-        for (String cp : this.classpath)
-            shell.addToClasspath(cp);
+        for (String cp : this.classpath) {
+            GlobFinder resolver = new GlobFinder(cp);
+            try {
+                for (Path entry : resolver.computeMatchingPaths())
+                    shell.addToClasspath(entry.toAbsolutePath().toString());
+            } catch (IOException e) {
+                throw new RuntimeException(String.format("IOException while computing classpath entries for '%s': %s", cp, e.getMessage()), e);
+            }
+        }
 
         return new CodeEvaluator(shell, executionControlProvider, executionControlID, this.startupScripts);
     }

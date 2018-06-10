@@ -113,11 +113,23 @@ and the `kernel.json` file will be in the given directory.
 
 `IJAVA_TIMEOUT` - **default: `"-1"`** - A duration specifying a timeout (in milliseconds by default) for a _single top level statement_. If less than `1` then there is no timeout. If desired a time may be specified with a [`TimeUnit`](https://docs.oracle.com/javase/9/docs/api/java/util/concurrent/TimeUnit.html) may be given following the duration number (ex `"30 SECONDS"`).
 
-`IJAVA_CLASSPATH` - **default: `""`** - A file path separator delimited list of classpath entries that should be available to the user code.
+`IJAVA_CLASSPATH` - **default: `""`** - A file path separator delimited list of classpath entries that should be available to the user code. **Important:** no matter what OS, this should use forward slash "/" as the file separator. Also each path may actually be a [simple glob](#simple-glob-syntax).
 
-`IJAVA_STARTUP_SCRIPTS_PATH` - **default: `""`** - A file path seperator delimited list of `.jshell` scripts to run on startup. This includes [ijava-jshell-init.jshell](src/main/resources/ijava-jshell-init.jshell) and [ijava-display-init.jshell](src/main/resources/ijava-display-init.jshell).
+`IJAVA_STARTUP_SCRIPTS_PATH` - **default: `""`** - A file path seperator delimited list of `.jshell` scripts to run on startup. This includes [ijava-jshell-init.jshell](src/main/resources/ijava-jshell-init.jshell) and [ijava-display-init.jshell](src/main/resources/ijava-display-init.jshell). **Important:** no matter what OS, this should use forward slash "/" as the file separator. Also each path may actually be a [simple glob](#simple-glob-syntax).
 
 `IJAVA_STARTUP_SCRIPT` - **default: `""`** - A block of java code to run when the kernel starts up. This may be something like `import my.utils;` to setup some default imports or even `void sleep(long time) { try {Thread.sleep(time); } catch (InterruptedException e) { throw new RuntimeException(e); }}` to declare a default utility method to use in the notebook.
+
+##### Simple glob syntax
+
+Options that support this glob syntax may reference a set of files with a single path-like string. Basic glob queries are supported including:
+
+*   `*` to match 0 or more characters up to the next path boundary `/`
+*   `?` to match a single character
+*   A path ending in `/` implicitly adds a `*` to match all files in the resolved directory
+
+Any relative paths are resolved from the notebook server's working directory. For example the glob `*.jar` will match all jars is the directory that the `jupyter notebook` command was run.
+
+**Note:** users on any OS should use `/` as a path separator.
 
 #### Changing VM/compiler options
 
@@ -145,7 +157,7 @@ For example to enable assertions, set a limit on the heap size to `128m`, and en
 
 See the [List of options](#list-of-options) section for all of the configuration options.
 
-To setup a startup script such as an `init.jshell` script, set the `IJAVA_STARTUP_SCRIPTS_PATH` to `init.jshell` in the `kernel.json`. This will try to execute an `init.jshell` script in the same directory as the notebook.
+To setup a startup script such as an `init.jshell` script, set the `IJAVA_STARTUP_SCRIPTS_PATH` to `init.jshell` in the `kernel.json`. This will try to execute an `init.jshell` script in the working directory of kernel.
 
 If desired use an absolute path to use a global init file.
 
