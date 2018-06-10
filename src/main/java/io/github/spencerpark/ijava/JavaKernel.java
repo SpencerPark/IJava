@@ -243,7 +243,9 @@ public class JavaKernel extends BaseKernel {
         Object result = this.evaluator.eval(expr);
 
         if (result != null)
-            return this.getRenderer().render(result);
+            return result instanceof DisplayData
+                    ? (DisplayData) result
+                    : this.getRenderer().render(result);
 
         return null;
     }
