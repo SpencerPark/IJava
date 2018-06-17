@@ -8,6 +8,8 @@ The kernel is currently working but there are some features that would be nice t
 
 If you are interested in building your own kernel that runs on the JVM check out the related project that this kernel is build on, [jupyter-jvm-basekernel](https://github.com/SpencerPark/jupyter-jvm-basekernel).
 
+For Maven dependency resolution, the kernel is using [ShrinkWrap resolvers](https://github.com/shrinkwrap/resolver).
+
 ### Contents
 
 *   [Try online](#try-online)
@@ -29,26 +31,27 @@ Clicking on the [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org
 
 Currently the kernel supports
 
-*   Code execution
+*   Code execution.
     ![output](docs/img/output.png)
-*   Autocompletion (`TAB` in Jupyter notebook)
+*   Autocompletion (`TAB` in Jupyter notebook).
     ![autocompletion](docs/img/autocompletion.png)
-*   Code inspection (`Shift-TAB` up to 4 times in Jupyter notebook)
+*   Code inspection (`Shift-TAB` up to 4 times in Jupyter notebook).
     ![code-inspection](docs/img/code-inspection.png)
-*   Colored, friendly, error message displays
+*   Colored, friendly, error message displays.
     ![compilation-error](docs/img/compilation-error.png)
     ![incomplete-src-error](docs/img/incomplete-src-error.png)
     ![runtime-error](docs/img/runtime-error.png)
+*   Add maven dependencies at runtime (See also [magics.md](docs/magics.md)).
+    ![maven-pom-dep](docs/img/maven-pom-dep.png)
+*   Display rich output (See also [display.md](docs/display.md) and [maven magic](docs/magics.md#addMavenDependencies)). Chart library in the demo photo is [XChart](https://github.com/knowm/XChart) with the sample code taken from their README.
+    ![display-img](docs/img/display-img.png)
 *   Configurable evaluation timeout
     ![timeout](docs/img/timeout.png)
-*   Display rich output (See also [display.md](docs/display.md))
-    ![display-img](docs/img/display-img.png)
 
 #### TODO
 
 - [ ] Support magics for making queries about the current environment.
 - [ ] Compile javadocs when displaying introspection requests as html.
-- [ ] Support loading maven dependencies at runtime.
 
 ### Requirements
 

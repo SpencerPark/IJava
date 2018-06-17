@@ -4,7 +4,7 @@ One of the many great things about the Jupyter front ends is the support for [`d
 
 ## Notebook functions
 
-IJava injects 2 functions into the user space for displaying data: `display` and `render`. Most use cases should prefer the former but there is a necessary case for `render` that is outline below. Both are defined in [ijava-display-init.jshell](src/main/resources/ijava-display-init.jshell).
+IJava injects 2 functions into the user space for displaying data: `display` and `render`. Most use cases should prefer the former but there is a necessary case for `render` that is outline below. Both are defined in [ijava-display-init.jshell](/src/main/resources/ijava-display-init.jshell).
 
 All display/render functions include a `text/plain` representation in their output. By default this is the `String.valueOf(Object)` value but it can be overridden.
 
