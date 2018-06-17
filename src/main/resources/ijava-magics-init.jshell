@@ -1,10 +1,27 @@
-import io.github.spencerpark.jupyter.kernel.magic.common.*;
-import io.github.spencerpark.jupyter.kernel.magic.registry.*;
+void lineMagic(String name, java.util.List<String> args) {
+    io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
 
-Magics __MAGICS = new Magics();
-__MAGICS.registerMagics(Shell.class);
-__MAGICS.registerMagics(WriteFile.class);
+    if (kernel != null) {
+        try {
+            kernel.getMagics().applyLineMagic(name, args);
+        } catch (io.github.spencerpark.jupyter.kernel.magic.registry.UndefinedMagicException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(String.format("Exception occurred while running line magic '%s': %s", name, e.getMessage()), e);
+        }
+    }
+}
 
-<T> String __captureNull(T expr) {
-    return expr == null ? "__NO_MAGIC_RETURN" : String.valueOf(expr);
+void cellMagic(String name, java.util.List<String> args, String body) {
+    io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
+
+    if (kernel != null) {
+        try {
+            kernel.getMagics().applyCellMagic(name, args, body);
+        } catch (io.github.spencerpark.jupyter.kernel.magic.registry.UndefinedMagicException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(String.format("Exception occurred while running cell magic '%s': %s", name, e.getMessage()), e);
+        }
+    }
 }

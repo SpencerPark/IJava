@@ -28,9 +28,8 @@ import io.github.spencerpark.jupyter.kernel.BaseKernel;
 import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
 import io.github.spencerpark.jupyter.kernel.display.DisplayData;
-import io.github.spencerpark.jupyter.kernel.magic.CellMagicArgs;
-import io.github.spencerpark.jupyter.kernel.magic.LineMagicArgs;
-import io.github.spencerpark.jupyter.kernel.magic.MagicParser;
+import io.github.spencerpark.jupyter.kernel.magic.*;
+import io.github.spencerpark.jupyter.kernel.magic.registry.Magics;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
 import io.github.spencerpark.jupyter.kernel.util.StringStyler;
 import io.github.spencerpark.jupyter.kernel.util.TextColor;
@@ -53,8 +52,10 @@ public class JavaKernel extends BaseKernel {
     private static final CharPredicate WS = CharPredicate.anyOf(" \t\n\r");
 
     private final CodeEvaluator evaluator;
+    private final MavenResolver mavenResolver;
 
-    private final MagicParser magicParser;
+    private final MagicsSourceTransformer magicsTransformer;
+    private final Magics magics;
 
     private final LanguageInfo languageInfo;
     private final String banner;
@@ -76,8 +77,11 @@ public class JavaKernel extends BaseKernel {
                 .sysStderr()
                 .sysStdin()
                 .build();
+        this.mavenResolver = new MavenResolver(this::addToClasspath);
 
-        this.magicParser = new MagicParser("%", "%%");
+        this.magicsTransformer = new MagicsSourceTransformer();
+        this.magics = new Magics();
+        this.magics.registerMagics(this.mavenResolver);
 
         this.languageInfo = new LanguageInfo.Builder("Java")
                 .version(Runtime.version().toString())
@@ -108,6 +112,18 @@ public class JavaKernel extends BaseKernel {
                 .build();
     }
 
+    public void addToClasspath(String path) {
+        this.evaluator.getShell().addToClasspath(path);
+    }
+
+    public MavenResolver getMavenResolver() {
+        return this.mavenResolver;
+    }
+
+    public Magics getMagics() {
+        return this.magics;
+    }
+
     @Override
     public LanguageInfo getLanguageInfo() {
         return this.languageInfo;
@@ -121,33 +137,6 @@ public class JavaKernel extends BaseKernel {
     @Override
     public List<LanguageInfo.Help> getHelpLinks() {
         return this.helpLinks;
-    }
-
-    private String b64Transform(String arg) {
-        String encoded = Base64.getEncoder().encodeToString(arg.getBytes());
-
-        return String.format("new String(Base64.getDecoder().decode(\"%s\"))", encoded);
-    }
-
-    private String transformLineMagic(LineMagicArgs args) {
-        return String.format(
-                "__MAGICS.applyLineMagic(%s,List.of(%s));",
-                this.b64Transform(args.getName()),
-                args.getArgs().stream()
-                        .map(this::b64Transform)
-                        .collect(Collectors.joining(","))
-        );
-    }
-
-    private String transformCellMagic(CellMagicArgs args) {
-        return String.format(
-                "__captureNull(__MAGICS.applyCellMagic(%s,List.of(%s),%s));",
-                this.b64Transform(args.getName()),
-                args.getArgs().stream()
-                        .map(this::b64Transform)
-                        .collect(Collectors.joining(",")),
-                this.b64Transform(args.getBody())
-        );
     }
 
     @Override
@@ -237,8 +226,7 @@ public class JavaKernel extends BaseKernel {
 
     @Override
     public DisplayData eval(String expr) throws Exception {
-        //expr = this.magicParser.transformCellMagic(expr, this::transformCellMagic);
-        //expr = this.magicParser.transformLineMagics(expr, this::transformLineMagic);
+        expr = this.magicsTransformer.transformMagics(expr);
 
         Object result = this.evaluator.eval(expr);
 
