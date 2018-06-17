@@ -31,16 +31,21 @@ import io.github.spencerpark.jupyter.kernel.display.DisplayData;
 import io.github.spencerpark.jupyter.kernel.magic.*;
 import io.github.spencerpark.jupyter.kernel.magic.registry.Magics;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
+import io.github.spencerpark.jupyter.kernel.util.GlobFinder;
 import io.github.spencerpark.jupyter.kernel.util.StringStyler;
 import io.github.spencerpark.jupyter.kernel.util.TextColor;
 import io.github.spencerpark.jupyter.messages.Header;
 import jdk.jshell.*;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class JavaKernel extends BaseKernel {
     private static final CharPredicate IDENTIFIER_CHAR = CharPredicate.builder()
@@ -82,6 +87,21 @@ public class JavaKernel extends BaseKernel {
         this.magicsTransformer = new MagicsSourceTransformer();
         this.magics = new Magics();
         this.magics.registerMagics(this.mavenResolver);
+        this.magics.registerLineMagic("jars", args -> {
+            List<String> jars = args.stream()
+                    .map(GlobFinder::new)
+                    .flatMap(g -> {
+                        try {
+                            return StreamSupport.stream(g.computeMatchingPaths().spliterator(), false);
+                        } catch (IOException e) {
+                            throw new RuntimeException("Exception resolving jar glob", e);
+                        }
+                    })
+                    .map(p -> p.toAbsolutePath().toString())
+                    .collect(Collectors.toList());
+            jars.forEach(this::addToClasspath);
+            return jars;
+        });
 
         this.languageInfo = new LanguageInfo.Builder("Java")
                 .version(Runtime.version().toString())
