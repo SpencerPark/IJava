@@ -4,7 +4,7 @@ Magics in IJava are very similar to those from IPython. There are:
 
 *   **Line magics**: which are inline function calls via a magic function.
 
-    ```java
+    ```text
     %mavenRepo oss-sonatype-snapshots https://oss.sonatype.org/content/repositories/snapshots/
     %maven io.github.spencerpark:jupyter-jvm-basekernel:2.0.0-SNAPSHOT
     List<String> addedJars = %jars C:/all/my/*.jar
@@ -12,7 +12,7 @@ Magics in IJava are very similar to those from IPython. There are:
 
 *   **Cell magics**: which are entire cell function calls that use the body of the cell as a special argument.
 
-    ```java
+    ```xml
     %%loadFromPOM
     <repository>
       <id>oss-sonatype-snapshots</id>
@@ -50,7 +50,7 @@ Add jars to the notebook classpath.
 
 ### addMavenDependencies
 
-Add maven artifacts to the notebook classpath. All transitive dependencies are also added to the classpath. See also [addMavenRepo](#addMavenRepo).
+Add maven artifacts to the notebook classpath. All transitive dependencies are also added to the classpath. See also [addMavenRepo](#addmavenrepo).
 
 ###### Line magic
 
@@ -62,7 +62,7 @@ Add maven artifacts to the notebook classpath. All transitive dependencies are a
 
 ### addMavenRepo
 
-Add a maven repository to search for when using [addMavenDependencies](#addMavenDependencies).
+Add a maven repository to search for when using [addMavenDependencies](#addmavendependencies).
 
 ###### Line magic
 
@@ -74,7 +74,7 @@ Add a maven repository to search for when using [addMavenDependencies](#addMaven
 
 ### loadFromPOM
 
-Load any dependencies specified in a POM. This **ignores** repositories added with [addMavenRepo](#addMavenRepo) as the POM would likely specify it's own.
+Load any dependencies specified in a POM. This **ignores** repositories added with [addMavenRepo](#addmavenrepo) as the POM would likely specify it's own.
 
 The cell magic is designed to make it very simple to copy and paste from any READMEs specifying maven POM fragments to use in depending on an artifact (including repositories other than central).
 
@@ -101,7 +101,7 @@ The cell magic is designed to make it very simple to copy and paste from any REA
 
     Ex: To add a dependency not in central simply add a valid `<repository>` and `<dependency>` and the magic will take care of putting it together into a POM.
 
-    ```java
+    ```xml
     %%loadFromPOM
     <repository>
       <id>oss-sonatype-snapshots</id>

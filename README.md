@@ -43,7 +43,7 @@ Currently the kernel supports
     ![runtime-error](docs/img/runtime-error.png)
 *   Add maven dependencies at runtime (See also [magics.md](docs/magics.md)).
     ![maven-pom-dep](docs/img/maven-pom-dep.png)
-*   Display rich output (See also [display.md](docs/display.md) and [maven magic](docs/magics.md#addMavenDependencies)). Chart library in the demo photo is [XChart](https://github.com/knowm/XChart) with the sample code taken from their README.
+*   Display rich output (See also [display.md](docs/display.md) and [maven magic](docs/magics.md#addmavendependencies)). Chart library in the demo photo is [XChart](https://github.com/knowm/XChart) with the sample code taken from their README.
     ![display-img](docs/img/display-img.png)
 *   Configurable evaluation timeout
     ![timeout](docs/img/timeout.png)
