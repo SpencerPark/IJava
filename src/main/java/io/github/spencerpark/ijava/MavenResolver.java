@@ -193,7 +193,7 @@ public class MavenResolver {
         }
     }
 
-    @LineMagic(aliases = { "mavenRepo", "maven_repo" })
+    @LineMagic(aliases = { "mavenRepo" })
     public void addMavenRepo(List<String> args) {
         if (args.size() != 2)
             throw new IllegalArgumentException("Expected 2 arguments: repository id and url. Got: " + args);
