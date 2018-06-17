@@ -1,25 +1,41 @@
 io.github.spencerpark.jupyter.kernel.display.DisplayData render(Object o) {
     io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
-    return kernel != null ? kernel.getRenderer().render(o) : null;
+
+    if (kernel != null) {
+        return kernel.getRenderer().render(o);
+    } else {
+        throw new RuntimeException("No IJava kernel running");
+    }
 }
 
 io.github.spencerpark.jupyter.kernel.display.DisplayData render(Object o, String... as) {
     io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
-    return kernel != null ? kernel.getRenderer().renderAs(o, as) : null;
+
+    if (kernel != null) {
+        return kernel.getRenderer().renderAs(o, as);
+    } else {
+        throw new RuntimeException("No IJava kernel running");
+    }
 }
 
 void display(Object o) {
     io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
+
     if (kernel != null) {
         io.github.spencerpark.jupyter.kernel.display.DisplayData data = kernel.getRenderer().render(o);
         kernel.display(data);
+    } else {
+        throw new RuntimeException("No IJava kernel running");
     }
 }
 
 void display(Object o, String... as) {
     io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
+
     if (kernel != null) {
         io.github.spencerpark.jupyter.kernel.display.DisplayData data = kernel.getRenderer().renderAs(o, as);
         kernel.display(data);
+    } else {
+        throw new RuntimeException("No IJava kernel running");
     }
 }
