@@ -1,6 +1,6 @@
 # IJava
 
-[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?filepath=%2Fhome%2Fjovyan%2FHelloWorld.ipynb)
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master) ([JupyterLab ![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?urlpath=lab))
 
 A [Jupyter](http://jupyter.org/) kernel for executing Java code. The kernel executes code via the new [JShell tool](https://docs.oracle.com/javase/9/jshell/introduction-jshell.htm). Some of the additional commands should be supported in the future via a syntax similar to the ipython magics.
 
@@ -24,7 +24,7 @@ For Maven dependency resolution, the kernel is using [ShrinkWrap resolvers](http
 
 ### Try Online
 
-Clicking on the [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?filepath=%2Fhome%2Fjovyan%2FHelloWorld.ipynb) badge at the top (or right here) will spawn a jupyter server running this kernel. The binder base is the [ijava-binder project](https://github.com/SpencerPark/ijava-binder).
+Clicking on the [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master) ([JupyterLab ![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?urlpath=lab)) badge at the top (or right here) will spawn a jupyter server running this kernel. The binder base is the [ijava-binder project](https://github.com/SpencerPark/ijava-binder).
 
 ### Features
 
@@ -40,9 +40,9 @@ Currently the kernel supports
     ![compilation-error](docs/img/compilation-error.png)
     ![incomplete-src-error](docs/img/incomplete-src-error.png)
     ![runtime-error](docs/img/runtime-error.png)
-*   Add maven dependencies at runtime (See also [magics.md](docs/magics.md)).
+*   Add maven dependencies at runtime (See also [magics.md](docs/magics.md) and [Try the example ![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?urlpath=lab/tree/home/jovyan/3rdPartyDependency.ipynb)).
     ![maven-pom-dep](docs/img/maven-pom-dep.png)
-*   Display rich output (See also [display.md](docs/display.md) and [maven magic](docs/magics.md#addmavendependencies)). Chart library in the demo photo is [XChart](https://github.com/knowm/XChart) with the sample code taken from their README.
+*   Display rich output (See also [display.md](docs/display.md) and [maven magic](docs/magics.md#addmavendependencies)). Chart library in the demo photo is [XChart](https://github.com/knowm/XChart) with the sample code taken from their README. ([Try the example ![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?urlpath=lab/tree/home/jovyan/3rdPartyDependency.ipynb))
     ![display-img](docs/img/display-img.png)
 *   `eval` function. **Note: the signature is `Object eval(String) throws Exception`.** This evaluates the expression (a cell) in the user scope and returns the actual evaluation result instead of a serialized one.
     ![eval](docs/img/eval.png)
