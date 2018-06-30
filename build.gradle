@@ -12,7 +12,7 @@ group = 'io.github.spencerpark'
 version = '1.1.0-SNAPSHOT'
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '4.2.1'
+    gradleVersion = '4.8.1'
 }
 
 license {
