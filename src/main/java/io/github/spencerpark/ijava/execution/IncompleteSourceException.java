@@ -27,6 +27,7 @@ public class IncompleteSourceException extends Exception {
     private final String source;
 
     public IncompleteSourceException(String source) {
+        super(source);
         this.source = source;
     }
 

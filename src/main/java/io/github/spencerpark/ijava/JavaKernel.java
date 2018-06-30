@@ -75,6 +75,7 @@ public class JavaKernel extends BaseKernel {
                 .startupScript(IJava.resource(IJava.DEFAULT_SHELL_INIT_RESOURCE_PATH))
                 .startupScript(IJava.resource(IJava.MAGICS_INIT_RESOURCE_PATH))
                 .startupScript(IJava.resource(IJava.DISPLAY_INIT_RESOURCE_PATH))
+                .startupScript(IJava.resource(IJava.EVAL_INIT_RESOURCE_PATH))
                 .startupScriptFiles(System.getenv(IJava.STARTUP_SCRIPTS_KEY))
                 .startupScript(System.getenv(IJava.STARTUP_SCRIPT_KEY))
                 .timeoutFromString(System.getenv(IJava.TIMEOUT_DURATION_KEY))
@@ -244,11 +245,15 @@ public class JavaKernel extends BaseKernel {
         return fmt;
     }
 
-    @Override
-    public DisplayData eval(String expr) throws Exception {
+    public Object evalRaw(String expr) throws Exception {
         expr = this.magicsTransformer.transformMagics(expr);
 
-        Object result = this.evaluator.eval(expr);
+        return this.evaluator.eval(expr);
+    }
+
+    @Override
+    public DisplayData eval(String expr) throws Exception {
+        Object result = this.evalRaw(expr);
 
         if (result != null)
             return result instanceof DisplayData

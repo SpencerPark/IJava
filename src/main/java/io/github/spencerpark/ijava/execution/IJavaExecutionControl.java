@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * An ExecutionControl very similar to {@link jdk.jshell.execution.LocalExecutionControl} but which
@@ -46,12 +47,12 @@ public class IJavaExecutionControl extends DirectExecutionControl {
 
     private static final Object NULL = new Object();
 
+    private static final AtomicInteger EXECUTOR_THREAD_ID = new AtomicInteger(0);
+
     private final ExecutorService executor;
 
     private final long timeoutTime;
     private final TimeUnit timeoutUnit;
-
-    private volatile Future<Object> runningTask;
 
     private final Map<String, Object> results = new ConcurrentHashMap<>();
 
@@ -62,7 +63,7 @@ public class IJavaExecutionControl extends DirectExecutionControl {
     public IJavaExecutionControl(long timeoutTime, TimeUnit timeoutUnit) {
         this.timeoutTime = timeoutTime;
         this.timeoutUnit = timeoutTime > 0 ? Objects.requireNonNull(timeoutUnit) : TimeUnit.MILLISECONDS;
-        this.executor = Executors.newSingleThreadExecutor((r) -> new Thread(r, "IJava-executor"));
+        this.executor = Executors.newCachedThreadPool(r -> new Thread(r, "IJava-executor-" + EXECUTOR_THREAD_ID.getAndIncrement()));
     }
 
     public long getTimeoutDuration() {
@@ -81,12 +82,12 @@ public class IJavaExecutionControl extends DirectExecutionControl {
     }
 
     private Object execute(Method doitMethod) throws TimeoutException, Exception {
-        this.runningTask = this.executor.submit(() -> doitMethod.invoke(null));
+        Future<Object> runningTask = this.executor.submit(() -> doitMethod.invoke(null));
 
         try {
             if (this.timeoutTime > 0)
-                return this.runningTask.get(this.timeoutTime, this.timeoutUnit);
-            return this.runningTask.get();
+                return runningTask.get(this.timeoutTime, this.timeoutUnit);
+            return runningTask.get();
         } catch (CancellationException e) {
             // If canceled this means that stop() was invoked in which case the protocol is to
             // throw an ExecutionControl.StoppedException.
@@ -132,8 +133,7 @@ public class IJavaExecutionControl extends DirectExecutionControl {
 
     @Override
     public void stop() throws EngineTerminationException, InternalException {
-        if (this.runningTask != null)
-            this.runningTask.cancel(true);
+        this.executor.shutdownNow();
     }
 
     @Override

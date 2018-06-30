@@ -1,0 +1,9 @@
+Object eval(String expr) throws Exception {
+    io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
+
+    if (kernel != null) {
+        return kernel.evalRaw(expr);
+    } else {
+        throw new RuntimeException("No IJava kernel running");
+    }
+}

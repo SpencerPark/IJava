@@ -14,7 +14,6 @@ For Maven dependency resolution, the kernel is using [ShrinkWrap resolvers](http
 
 *   [Try online](#try-online)
 *   [Features](#features)
-    *   [TODO](#todo)
 *   [Requirements](#requirements)
 *   [Installing](#installing)
 *   [Configuring](#configuring)
@@ -45,13 +44,10 @@ Currently the kernel supports
     ![maven-pom-dep](docs/img/maven-pom-dep.png)
 *   Display rich output (See also [display.md](docs/display.md) and [maven magic](docs/magics.md#addmavendependencies)). Chart library in the demo photo is [XChart](https://github.com/knowm/XChart) with the sample code taken from their README.
     ![display-img](docs/img/display-img.png)
+*   `eval` function. **Note: the signature is `Object eval(String) throws Exception`.** This evaluates the expression (a cell) in the user scope and returns the actual evaluation result instead of a serialized one.
+    ![eval](docs/img/eval.png)
 *   Configurable evaluation timeout
     ![timeout](docs/img/timeout.png)
-
-#### TODO
-
-- [ ] Support magics for making queries about the current environment.
-- [ ] Compile javadocs when displaying introspection requests as html.
 
 ### Requirements
 
