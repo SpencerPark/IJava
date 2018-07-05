@@ -3,6 +3,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 plugins {
     id 'com.github.hierynomus.license' version '0.14.0'
     id 'io.github.spencerpark.jupyter-kernel-installer' version '1.1.5'
+    id 'com.github.jk1.dependency-license-report' version '1.1'
 }
 
 apply plugin: 'java'
@@ -15,6 +16,7 @@ task wrapper(type: Wrapper) {
     gradleVersion = '4.8.1'
 }
 
+// Add the license header to source files
 license {
     header = file('LICENSE')
     exclude '**/*.json'
@@ -24,6 +26,28 @@ license {
     }
 }
 build.dependsOn 'licenseFormat'
+
+import com.github.jk1.license.render.*
+import com.github.jk1.license.filter.*
+
+// Configures the license report generated for the dependencies.
+licenseReport {
+    //TODO write a renderer based on the html one with less opinionated styles
+    renderers = [
+            // Generate a pretty HTML report that groups dependencies by their license.
+            new InventoryHtmlReportRenderer('dependencies.html'),
+            new TextReportRenderer('dependencies.txt'),
+            // TODO make sure ci verifies that all licenses are know to be allowed to redistribute before publishing
+            new JsonReportRenderer('dependencies.json')
+    ]
+
+    // Group same licenses despite names being slightly different (ex. Apache 2.0 vs Apache version 2)
+    filters = [new LicenseBundleNormalizer()]
+
+    // Include the report for shaded dependencies as these are what will be redistributed
+    // and therefore must go in the report which will also be distributed.
+    configurations = ['shade']
+}
 
 compileJava {
     sourceCompatibility = 1.9
