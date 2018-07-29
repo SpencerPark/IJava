@@ -1,0 +1,71 @@
+<html>
+<head>
+    <title>Dependency License Report for $name</title>
+    <style>
+        <% out.println stylesheet %>
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- INVENTORY -->
+    <div class="inventory">
+        <div class="header">
+            <h1>${project.name} ${!"unspecified".equals(project.version) ? project.version : ""}</h1>
+            <h2>Dependency License Report</h2>
+            <h2 class="timestamp">
+                <em>${new Date().format("yyyy-MM-dd HH:mm:ss z")}</em>
+            </h2>
+        </div>
+
+        <h3 class="section-heading">${name}</h3>
+        <ul>
+            <% inventory.keySet().sort().each { license -> %>
+            <li>
+                <a class="license" href="#${serializeHref.call(name, license)}">
+                    <span class="license-name">${license}</span>
+                    <span class="badge">${inventory[license].size()}</span>
+                </a>
+            </li>
+            <% } %>
+        </ul>
+
+        <% externalInventories.each { name, modules -> %>
+        <h3 class="section-heading">${name}</h3>
+        <ul>
+            <% modules.each { license, dependencies -> %>
+            <li>
+                <a class="license" href="#${serializeHref.call(name, license)}">
+                    <span class="license-name">${license}</span>
+                    <span class="badge">${dependencies.size()}</span>
+                </a>
+            </li>
+            <% } %>
+        </ul>
+        <% } %>
+    </div>
+
+    <!-- DETAILS -->
+    <div class="content">
+        <h1>${name}</h1>
+        <% inventory.keySet().sort().each { license -> %>
+            <a id="${serializeHref.call(name, license)}"></a>
+            <h2>${license}</h2>
+            <% inventory[license].sort({ a, b -> a.group <=> b.group }).each { data ->
+                printDependency.call(out, data)
+            } %>
+        <% } %>
+
+        <% externalInventories.keySet().sort().each { String name -> %>
+            <h1>${name}</h1>
+            <% externalInventories[name].each { String license, dependencies -> %>
+                <a id="${serializeHref.call(name, license)}"></a>
+                <% dependencies.each { importedData ->
+                    printImportedDependency.call(out, importedData)
+                } %>
+            <% } %>
+        <% } %>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,151 @@
+@media print {
+    .inventory {
+        display: none;
+    }
+
+    .content {
+        position: static !important;
+    }
+}
+
+html, body, section {
+  height: 100%;
+}
+
+body {
+  font-family: sans-serif;
+  line-height: 125%;
+  margin: 0;
+  background: $primaryBg;
+}
+
+.header {
+    /* #22aa44 */
+    background: $accent;
+    color: $darkText;
+    padding: 2em 1em 1em 1em;
+}
+
+.header h1 {
+    font-size: 16pt;
+    margin: 0.5em 0;
+}
+
+.header h2 {
+    font-size: 10pt;
+    margin: 0;
+}
+
+.container {
+}
+
+.inventory {
+    background: $accentBg;
+    color: $lightText;
+    padding: 0;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 25%;
+    overflow: auto;
+}
+
+.inventory ul {
+    margin: 0;
+    padding: 0;
+}
+
+.inventory li {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.inventory li a {
+    width: 100%;
+    box-sizing: border-box;
+    color: $lightText;
+    text-decoration: none;
+    display: flex;
+    flex-direction: row;
+    padding: 0.938em 0.750em;
+}
+
+.inventory li a:hover {
+    background: rgba(50, 50, 50, 0.5);
+    color: white;
+}
+
+.inventory .section-heading {
+    background: rgba(50, 50, 50, 0.25);
+    padding-left: 0.5em;
+    margin: 0;
+    padding-top: 1em;
+    padding-bottom: 1em;
+}
+
+.license .license-name {
+    flex-grow: 1;
+}
+
+.license .badge {
+    background: $accent;
+    padding: 0.625em 0.938em;
+    border-radius: 1.250em;
+    color: $darkText;
+    display: inline-table;
+}
+
+.content {
+    padding: 0 1rem;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 25%;
+    width: 75%;
+    box-sizing: border-box;
+}
+
+.content h1 {
+    color: $darkText;
+    background-color: $accent;
+    padding: 0.67em;
+    margin: 0 -1rem;
+}
+
+.dependency {
+    background: white;
+    padding: 1em;
+    margin-bottom: 1em;
+}
+
+.dependency:hover {
+    box-shadow: dimgrey 0.2em 0.2em 0.2em 0em;
+}
+
+.dependency .index {
+    font-size: larger;
+    font-weight: lighter;
+}
+
+.dependency-prop {
+    padding: 0.3em;
+}
+
+.dependency-prop:hover {
+    background: rgba(50, 50, 50, 0.25);
+}
+
+.dependency-prop label {
+    font-weight: bold;
+}
+
+.dependency-value {
+    padding-left: 1em;
+}
+
+.dependency-value ul {
+    margin-top: 0;
+    margin-bottom: 0;
+}
