@@ -35,12 +35,6 @@ class NewInventoryHtmlReportRenderer implements ReportRenderer {
 
     @Override
     void render(ProjectData data) {
-        println(
-                data.project.configurations['shade']
-                        .resolvedConfiguration
-                        .resolvedArtifacts
-                .findAll {it.id.displayName.contains("github")}
-        )
         this.counter = 0
 
         def project = data.project
