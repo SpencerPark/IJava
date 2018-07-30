@@ -12,7 +12,7 @@ import com.github.jk1.license.filter.*
 import io.github.spencerpark.gradle.*
 
 group = 'io.github.spencerpark'
-version = '1.1.1-SNAPSHOT'
+version = '1.1.1'
 
 wrapper {
     gradleVersion = '4.8.1'

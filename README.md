@@ -18,6 +18,8 @@ For Maven dependency resolution, the kernel is using [ShrinkWrap resolvers](http
 *   [Features](#features)
 *   [Requirements](#requirements)
 *   [Installing](#installing)
+    *   [Install pre-build binary](#install-pre-built-binary)
+    *   [Install from source](#install-from-source)
 *   [Configuring](#configuring)
     *   [List of options](#list-of-options)
     *   [Changing VM/compiler options](#changing-vmcompiler-options)
@@ -82,13 +84,40 @@ Currently the kernel supports
         
 ### Installing
 
-After meeting the [requirements](#requirements), the kernel can be installed locally.
+After meeting the [requirements](#requirements), the kernel can be installed locally. Any time you wish to remove a kernel you may use `jupyter kernelspec remove java`.
+
+#### Install pre-built binary
+
+Get the latest _release_ of the software with no compilation needed. See [Install from source](#install-from-source) for building the the latest commit.
+
+**Note:** if you have an old installation or a debug one from running `gradlew installKernel` it is suggested that it is first removed via `jupyter kernelspec remove java`.
+
+1.  Download the release from the [releases tab](https://github.com/SpencerPark/IJava/releases). A prepackaged distribution will be in an artifact named `ijava-$version.zip`.
+
+2.  Unzip it into a temporary location. It should have at least the `install.py` and `java` folder extracted in there.
+
+3.  Run the installer with the same python command used to install jupyter. The installer is a python script and has the same options as `jupyter kernelspec install` but additionally supports configuring some of the kernel properties mentioned further below in the README.
+
+    ```bash
+    # Pass the -h option to see the help page
+    > python3 install.py -h
+
+    # Otherwise a common install command is
+    > python3 install.py --sys-prefix
+    ```
+
+4.  Check that it installed with `jupyter kernelspec list` which should contain `java`.
+
+#### Install from source
+
+Get the latest version of the kernel but possibly run into some issues with installing. This is also the route to take if you wish to contribute to the kernel.
 
 1.  Download the project.
     ```bash
-    > git clone https://github.com/SpencerPark/IJava.git --depth 1
+    > git clone https://github.com/SpencerPark/IJava.git
     > cd IJava/
     ```
+
 2.  Build and install the kernel.
     
     On *nix `chmod u+x gradlew && ./gradlew installKernel`
@@ -149,7 +178,7 @@ For example to enable assertions, set a limit on the heap size to `128m`, and en
   "display_name": "Java",
   "language": "java",
   "env": {
-+     "IJAVA_COMPILER_OPTS" : "-parameter"
++     "IJAVA_COMPILER_OPTS" : "-parameters"
   }
 }
 ```
