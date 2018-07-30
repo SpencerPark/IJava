@@ -12,7 +12,7 @@ import com.github.jk1.license.filter.*
 import io.github.spencerpark.gradle.*
 
 group = 'io.github.spencerpark'
-version = '1.1.0-SNAPSHOT'
+version = '1.1.1-SNAPSHOT'
 
 wrapper {
     gradleVersion = '4.8.1'
@@ -67,7 +67,7 @@ repositories {
 }
 
 dependencies {
-    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.2.1-SNAPSHOT'
+    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.2.2-SNAPSHOT'
     shade group: 'org.jboss.shrinkwrap.resolver', name: 'shrinkwrap-resolver-impl-maven', version: '3.1.3'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
