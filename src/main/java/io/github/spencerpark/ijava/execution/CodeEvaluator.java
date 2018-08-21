@@ -75,8 +75,16 @@ public class CodeEvaluator {
             String key = event.value();
             if (key == null) continue;
 
-            Object value = executionControl.takeResult(key);
-            switch (event.snippet().subKind()) {
+            Snippet.SubKind subKind = event.snippet().subKind();
+
+            // Only executable snippets make their way through the machinery we have setup in the
+            // IJavaExecutionControl. Declarations for example simply take their default value without
+            // being executed.
+            Object value = subKind.isExecutable()
+                    ? executionControl.takeResult(key)
+                    : event.value();
+
+            switch (subKind) {
                 case VAR_VALUE_SUBKIND:
                 case OTHER_EXPRESSION_SUBKIND:
                 case TEMP_VAR_EXPRESSION_SUBKIND:
