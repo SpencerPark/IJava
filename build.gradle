@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'maven-publish'
     id('com.github.hierynomus.license') version '0.14.0'
-    id('io.github.spencerpark.jupyter-kernel-installer') version '1.1.8'
+    id('io.github.spencerpark.jupyter-kernel-installer') version '2.0.0'
     id('com.github.jk1.dependency-license-report')
 }
 
@@ -16,6 +16,7 @@ version = '1.1.2'
 
 wrapper {
     gradleVersion = '4.8.1'
+    distributionType = Wrapper.DistributionType.ALL
 }
 
 // Add the license header to source files
@@ -67,7 +68,7 @@ repositories {
 }
 
 dependencies {
-    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.2.2'
+    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.2.3-SNAPSHOT'
 
     shade group: 'org.jboss.shrinkwrap.resolver', name: 'shrinkwrap-resolver-impl-maven', version: '3.1.3'
 
@@ -136,6 +137,11 @@ jupyter {
             description = '''A duration specifying a timeout (in milliseconds by default) for a _single top level statement_. If less than `1` then there is no timeout. If desired a time may be specified with a `TimeUnit` may be given following the duration number (ex `"30 SECONDS"`).'''
         }
     }
+}
+
+installKernel {
+    //pythonExecutable = 'python'
+    kernelInstallPath = commandLineSpecifiedPath(userInstallPath)
 }
 
 zipKernel {
