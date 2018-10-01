@@ -124,7 +124,6 @@ public class IJavaExecutionControl extends DirectExecutionControl {
             else
                 throw new UserException(String.valueOf(cause.getMessage()), String.valueOf(cause.getClass().getName()), cause.getStackTrace());
         } catch (TimeoutException e) {
-            this.stop();
             throw new UserException(
                     String.format("Execution timed out after configured timeout of %d %s.", this.timeoutTime, this.timeoutUnit.toString().toLowerCase()),
                     EXECUTION_TIMEOUT_NAME,
