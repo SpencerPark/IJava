@@ -96,7 +96,7 @@ public class IJava {
 
         String contents = new String(Files.readAllBytes(connectionFile));
 
-        JupyterSocket.JUPYTER_LOGGER.setLevel(Level.ALL);
+        JupyterSocket.JUPYTER_LOGGER.setLevel(Level.WARNING);
 
         KernelConnectionProperties connProps = KernelConnectionProperties.parse(contents);
         JupyterConnection connection = new JupyterConnection(connProps);

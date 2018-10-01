@@ -23,11 +23,17 @@
  */
 package io.github.spencerpark.ijava.execution;
 
+import io.github.spencerpark.ijava.JavaKernel;
 import jdk.jshell.*;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CodeEvaluator {
+    private static final Pattern WHITESPACE_PREFIX = Pattern.compile("(?:^|\r?\n)(?<ws>\\s*).*$");
+    private static final Pattern LAST_LINE = Pattern.compile("(?:^|\r?\n)(?<last>.*)$");
+
     private static final String NO_MAGIC_RETURN = "\"__NO_MAGIC_RETURN\"";
 
     private final JShell shell;
@@ -37,6 +43,8 @@ public class CodeEvaluator {
 
     private boolean isInitialized = false;
     private final List<String> startupScripts;
+
+    private final String indentation = "  ";
 
     public CodeEvaluator(JShell shell, IJavaExecutionControlProvider executionControlProvider, String executionControlID, List<String> startupScripts) {
         this.shell = shell;
@@ -142,6 +150,74 @@ public class CodeEvaluator {
             throw new IncompleteSourceException(info.remaining().trim());
 
         return lastEvalResult;
+    }
+
+    private String computeIndentation(String partialStatement) {
+        // Find the indentation of the last line
+        Matcher m = WHITESPACE_PREFIX.matcher(partialStatement);
+        String currentIndentation = m.find() ? m.group("ws") : "";
+
+        m = LAST_LINE.matcher(partialStatement);
+        if (!m.find())
+            throw new Error("Pattern broken. Every string should have a last line.");
+
+        // If a brace or paren was opened on the last line and not closed, indent some more.
+        String lastLine = m.group("last");
+        int newlyOpenedBraces = -1;
+        int newlyOpenedParens = -1;
+        for (int i = 0; i < lastLine.length(); i++) {
+            switch (lastLine.charAt(i)) {
+                case '}':
+                    // Ignore closing if one has not been opened on this line yet
+                    if (newlyOpenedBraces == -1) continue;
+                    // Otherwise close an opened one from this line
+                    newlyOpenedBraces--;
+                    break;
+                case ')':
+                    // Same as for braces, but with the parens
+                    if (newlyOpenedParens == -1) continue;
+                    newlyOpenedParens--;
+                    break;
+                case '{':
+                    // A brace was opened on this line!
+                    // If the first then get out og the -1 special case with an extra addition
+                    if (newlyOpenedBraces == -1) newlyOpenedBraces++;
+                    newlyOpenedBraces++;
+                    break;
+                case '(':
+                    if (newlyOpenedParens == -1) newlyOpenedParens++;
+                    newlyOpenedParens++;
+                    break;
+            }
+        }
+
+        return newlyOpenedBraces > 0 || newlyOpenedParens > 0
+                ? currentIndentation + this.indentation
+                : currentIndentation;
+    }
+
+    public String isComplete(String code) {
+        SourceCodeAnalysis.CompletionInfo info = this.sourceAnalyzer.analyzeCompletion(code);
+        while (info.completeness().isComplete())
+            info = analyzeCompletion(info.remaining());
+
+        switch (info.completeness()) {
+            case UNKNOWN:
+                // Unknown means "bad code" and the only way to see if is complete is
+                // to execute it.
+                return JavaKernel.invalidCodeSignifier();
+            case COMPLETE:
+            case COMPLETE_WITH_SEMI:
+            case EMPTY:
+                return JavaKernel.completeCodeSignifier();
+            case CONSIDERED_INCOMPLETE:
+            case DEFINITELY_INCOMPLETE:
+                // Compute the indent of the last line and match it
+                return this.computeIndentation(info.remaining());
+            default:
+                // For completeness, return an "I don't know" if we somehow get down here
+                return JavaKernel.maybeCompleteCodeSignifier();
+        }
     }
 
     public void interrupt() {

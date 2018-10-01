@@ -34,6 +34,9 @@ import io.github.spencerpark.jupyter.kernel.util.GlobFinder;
 import io.github.spencerpark.jupyter.kernel.util.StringStyler;
 import io.github.spencerpark.jupyter.kernel.util.TextColor;
 import io.github.spencerpark.jupyter.messages.Header;
+import io.github.spencerpark.jupyter.messages.publish.PublishError;
+import io.github.spencerpark.jupyter.messages.reply.ErrorReply;
+import io.github.spencerpark.jupyter.messages.reply.ExecuteReply;
 import jdk.jshell.*;
 
 import java.io.IOException;
@@ -44,6 +47,18 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class JavaKernel extends BaseKernel {
+    public static String completeCodeSignifier() {
+        return BaseKernel.IS_COMPLETE_YES;
+    }
+
+    public static String invalidCodeSignifier() {
+        return BaseKernel.IS_COMPLETE_BAD;
+    }
+
+    public static String maybeCompleteCodeSignifier() {
+        return BaseKernel.IS_COMPLETE_MAYBE;
+    }
+
     private static final CharPredicate IDENTIFIER_CHAR = CharPredicate.builder()
             .inRange('a', 'z')
             .inRange('A', 'Z')
@@ -259,13 +274,21 @@ public class JavaKernel extends BaseKernel {
 
     @Override
     public DisplayData eval(String expr) throws Exception {
-        Object result = this.evalRaw(expr);
+        try {
+            Object result = this.evalRaw(expr);
 
-        if (result != null)
-            return result instanceof DisplayData
-                    ? (DisplayData) result
-                    : this.getRenderer().render(result);
+            if (result != null)
+                return result instanceof DisplayData
+                        ? (DisplayData) result
+                        : this.getRenderer().render(result);
 
+        } catch (Exception e) {
+            ErrorReply error = ErrorReply.of(e);
+            PublishError pubError = PublishError.of(e, this::formatError);
+            System.out.println(error);
+            System.out.println(pubError);
+            throw e;
+        }
         return null;
     }
 
@@ -337,7 +360,7 @@ public class JavaKernel extends BaseKernel {
 
     @Override
     public String isComplete(String code) {
-        return super.isComplete(code);
+        return this.evaluator.isComplete(code);
     }
 
     @Override
