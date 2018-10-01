@@ -197,8 +197,12 @@ public class JavaKernel extends BaseKernel {
         Snippet snippet = event.snippet();
         this.evaluator.getShell().diagnostics(snippet)
                 .forEach(d -> {
-                    fmt.addAll(this.errorStyler.highlightSubstringLines(snippet.source(),
-                            (int) d.getStartPosition(), (int) d.getEndPosition()));
+                    // If has line information related, highlight that span
+                    if (d.getStartPosition() >= 0 && d.getEndPosition() >= 0)
+                        fmt.addAll(this.errorStyler.highlightSubstringLines(snippet.source(),
+                                (int) d.getStartPosition(), (int) d.getEndPosition()));
+                    else
+                        fmt.addAll(this.errorStyler.primaryLines(snippet.source()));
 
                     // Add the error message
                     for (String line : StringStyler.splitLines(d.getMessage(null))) {
@@ -274,21 +278,13 @@ public class JavaKernel extends BaseKernel {
 
     @Override
     public DisplayData eval(String expr) throws Exception {
-        try {
-            Object result = this.evalRaw(expr);
+        Object result = this.evalRaw(expr);
 
-            if (result != null)
-                return result instanceof DisplayData
-                        ? (DisplayData) result
-                        : this.getRenderer().render(result);
+        if (result != null)
+            return result instanceof DisplayData
+                    ? (DisplayData) result
+                    : this.getRenderer().render(result);
 
-        } catch (Exception e) {
-            ErrorReply error = ErrorReply.of(e);
-            PublishError pubError = PublishError.of(e, this::formatError);
-            System.out.println(error);
-            System.out.println(pubError);
-            throw e;
-        }
         return null;
     }
 
