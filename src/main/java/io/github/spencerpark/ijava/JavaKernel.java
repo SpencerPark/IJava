@@ -34,9 +34,6 @@ import io.github.spencerpark.jupyter.kernel.util.GlobFinder;
 import io.github.spencerpark.jupyter.kernel.util.StringStyler;
 import io.github.spencerpark.jupyter.kernel.util.TextColor;
 import io.github.spencerpark.jupyter.messages.Header;
-import io.github.spencerpark.jupyter.messages.publish.PublishError;
-import io.github.spencerpark.jupyter.messages.reply.ErrorReply;
-import io.github.spencerpark.jupyter.messages.reply.ExecuteReply;
 import jdk.jshell.*;
 
 import java.io.IOException;
@@ -180,6 +177,8 @@ public class JavaKernel extends BaseKernel {
             return formatIncompleteSourceException((IncompleteSourceException) e);
         } else if (e instanceof EvalException) {
             return formatEvalException((EvalException) e);
+        } else if (e instanceof UnresolvedReferenceException) {
+            return formatUnresolvedReferenceException(((UnresolvedReferenceException) e));
         } else if (e instanceof EvaluationTimeoutException) {
             return formatEvaluationTimeoutException((EvaluationTimeoutException) e);
         } else if (e instanceof EvaluationInterruptedException) {
@@ -246,6 +245,23 @@ public class JavaKernel extends BaseKernel {
         super.formatError(e).stream()
                 .map(line -> line.replace(evalExceptionClassName, actualExceptionName))
                 .forEach(fmt::add);
+
+        return fmt;
+    }
+
+    private List<String> formatUnresolvedReferenceException(UnresolvedReferenceException e) {
+        List<String> fmt = new ArrayList<>();
+
+        DeclarationSnippet snippet = e.getSnippet();
+
+        List<String> unresolvedDependencies = this.evaluator.getShell().unresolvedDependencies(snippet)
+                .collect(Collectors.toList());
+        if (!unresolvedDependencies.isEmpty()) {
+            fmt.addAll(this.errorStyler.primaryLines(snippet.source()));
+            fmt.add(this.errorStyler.secondary("Unresolved dependencies:"));
+            unresolvedDependencies.forEach(dep ->
+                    fmt.add(this.errorStyler.secondary("   - " + dep)));
+        }
 
         return fmt;
     }

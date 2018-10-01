@@ -25,6 +25,7 @@ package io.github.spencerpark.ijava.execution;
 
 import jdk.jshell.EvalException;
 import jdk.jshell.execution.DirectExecutionControl;
+import jdk.jshell.spi.SPIResolutionException;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -110,7 +111,7 @@ public class IJavaExecutionControl extends DirectExecutionControl {
                 throw new UserException(
                         "Execution interrupted.",
                         EXECUTION_INTERRUPTED_NAME,
-                        new StackTraceElement[]{} // The trace is irrelevant because it is in the kernel space not the user space so leave it blank.
+                        e.getStackTrace()
                 );
         } catch (ExecutionException e) {
             // The execution threw an exception. The actual exception is the cause of the ExecutionException.
@@ -121,13 +122,15 @@ public class IJavaExecutionControl extends DirectExecutionControl {
             }
             if (cause == null)
                 throw new UserException("null", "Unknown Invocation Exception", e.getStackTrace());
+            else if (cause instanceof SPIResolutionException)
+                throw new ResolutionException(((SPIResolutionException) cause).id(), cause.getStackTrace());
             else
                 throw new UserException(String.valueOf(cause.getMessage()), String.valueOf(cause.getClass().getName()), cause.getStackTrace());
         } catch (TimeoutException e) {
             throw new UserException(
                     String.format("Execution timed out after configured timeout of %d %s.", this.timeoutTime, this.timeoutUnit.toString().toLowerCase()),
                     EXECUTION_TIMEOUT_NAME,
-                    new StackTraceElement[]{} // The trace is irrelevant because it is in the kernel space not the user space so leave it blank.
+                    e.getStackTrace()
             );
         } finally {
             this.running.remove(key, runningTask);
