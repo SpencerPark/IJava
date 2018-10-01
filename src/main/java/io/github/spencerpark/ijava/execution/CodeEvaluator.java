@@ -101,8 +101,17 @@ public class CodeEvaluator {
             if (event.causeSnippet() == null) {
                 JShellException e = event.exception();
                 if (e != null) {
-                    if (e instanceof EvalException && IJavaExecutionControl.EXECUTION_TIMEOUT_NAME.equals(((EvalException) e).getExceptionClassName()))
-                        throw new EvaluationTimeoutException(executionControl.getTimeoutDuration(), executionControl.getTimeoutUnit(), code.trim());
+                    if (e instanceof EvalException) {
+                        switch (((EvalException) e).getExceptionClassName()) {
+                            case IJavaExecutionControl.EXECUTION_TIMEOUT_NAME:
+                                throw new EvaluationTimeoutException(executionControl.getTimeoutDuration(), executionControl.getTimeoutUnit(), code.trim());
+                            case IJavaExecutionControl.EXECUTION_INTERRUPTED_NAME:
+                                throw new EvaluationInterruptedException(code.trim());
+                            default:
+                                throw e;
+                        }
+                    }
+
                     throw e;
                 }
 
@@ -136,7 +145,11 @@ public class CodeEvaluator {
     }
 
     public void interrupt() {
-        this.shell.stop();
+        IJavaExecutionControl executionControl =
+                this.executionControlProvider.getRegisteredControlByID(this.executionControlID);
+
+        if (executionControl != null)
+            executionControl.interrupt();
     }
 
     public void shutdown() {

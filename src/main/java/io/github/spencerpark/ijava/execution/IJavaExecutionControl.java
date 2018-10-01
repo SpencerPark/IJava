@@ -41,9 +41,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class IJavaExecutionControl extends DirectExecutionControl {
     /**
      * A special "class name" for a {@link jdk.jshell.spi.ExecutionControl.UserException} such that it may be
-     * identified after serialization into an {@link jdk.jshell.EvalException} via {@link EvalException#getExceptionClassName()}.
+     * identified after serialization into an {@link jdk.jshell.EvalException} via {@link
+     * EvalException#getExceptionClassName()}.
      */
     public static final String EXECUTION_TIMEOUT_NAME = "Execution Timeout"; // Has spaces to not collide with a class name
+
+    /**
+     * A special "class name" for a {@link jdk.jshell.spi.ExecutionControl.UserException} such that it may be
+     * identified after serialization into an {@link jdk.jshell.EvalException} via {@link
+     * EvalException#getExceptionClassName()}
+     */
+    public static final String EXECUTION_INTERRUPTED_NAME = "Execution Interrupted";
 
     private static final Object NULL = new Object();
 
@@ -54,6 +62,7 @@ public class IJavaExecutionControl extends DirectExecutionControl {
     private final long timeoutTime;
     private final TimeUnit timeoutUnit;
 
+    private final ConcurrentMap<String, Future<Object>> running = new ConcurrentHashMap<>();
     private final Map<String, Object> results = new ConcurrentHashMap<>();
 
     public IJavaExecutionControl() {
@@ -81,17 +90,28 @@ public class IJavaExecutionControl extends DirectExecutionControl {
         return result == NULL ? null : result;
     }
 
-    private Object execute(Method doitMethod) throws TimeoutException, Exception {
+    private Object execute(String key, Method doitMethod) throws TimeoutException, Exception {
         Future<Object> runningTask = this.executor.submit(() -> doitMethod.invoke(null));
+
+        this.running.put(key, runningTask);
 
         try {
             if (this.timeoutTime > 0)
                 return runningTask.get(this.timeoutTime, this.timeoutUnit);
             return runningTask.get();
         } catch (CancellationException e) {
-            // If canceled this means that stop() was invoked in which case the protocol is to
-            // throw an ExecutionControl.StoppedException.
-            throw new StoppedException();
+            // If canceled this means that stop() or interrupt() was invoked.
+            if (this.executor.isShutdown())
+                // If the executor is shutdown, the situation is the former in which
+                // case the protocol is to throw an ExecutionControl.StoppedException.
+                throw new StoppedException();
+            else
+                // The execution was purposely interrupted.
+                throw new UserException(
+                        "Execution interrupted.",
+                        EXECUTION_INTERRUPTED_NAME,
+                        new StackTraceElement[]{} // The trace is irrelevant because it is in the kernel space not the user space so leave it blank.
+                );
         } catch (ExecutionException e) {
             // The execution threw an exception. The actual exception is the cause of the ExecutionException.
             Throwable cause = e.getCause();
@@ -110,6 +130,8 @@ public class IJavaExecutionControl extends DirectExecutionControl {
                     EXECUTION_TIMEOUT_NAME,
                     new StackTraceElement[]{} // The trace is irrelevant because it is in the kernel space not the user space so leave it blank.
             );
+        } finally {
+            this.running.remove(key, runningTask);
         }
     }
 
@@ -125,10 +147,15 @@ public class IJavaExecutionControl extends DirectExecutionControl {
      */
     @Override
     protected String invoke(Method doitMethod) throws Exception {
-        Object value = this.execute(doitMethod);
         String id = UUID.randomUUID().toString();
+        Object value = this.execute(id, doitMethod);
         this.results.put(id, value);
         return id;
+    }
+
+    public void interrupt() {
+        this.running.forEach((id, future) ->
+                future.cancel(true));
     }
 
     @Override

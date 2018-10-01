@@ -28,7 +28,6 @@ import io.github.spencerpark.jupyter.kernel.BaseKernel;
 import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
 import io.github.spencerpark.jupyter.kernel.display.DisplayData;
-import io.github.spencerpark.jupyter.kernel.magic.*;
 import io.github.spencerpark.jupyter.kernel.magic.registry.Magics;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
 import io.github.spencerpark.jupyter.kernel.util.GlobFinder;
@@ -38,10 +37,7 @@ import io.github.spencerpark.jupyter.messages.Header;
 import jdk.jshell.*;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -171,6 +167,8 @@ public class JavaKernel extends BaseKernel {
             return formatEvalException((EvalException) e);
         } else if (e instanceof EvaluationTimeoutException) {
             return formatEvaluationTimeoutException((EvaluationTimeoutException) e);
+        } else if (e instanceof EvaluationInterruptedException) {
+            return formatEvaluationInterruptedException((EvaluationInterruptedException) e);
         } else {
             fmt.addAll(super.formatError(e));
         }
@@ -241,6 +239,14 @@ public class JavaKernel extends BaseKernel {
                 e.getDuration(),
                 e.getUnit().name().toLowerCase())
         ));
+
+        return fmt;
+    }
+
+    private List<String> formatEvaluationInterruptedException(EvaluationInterruptedException e) {
+        List<String> fmt = new ArrayList<>(this.errorStyler.primaryLines(e.getSource()));
+
+        fmt.add(this.errorStyler.secondary("Evaluation interrupted."));
 
         return fmt;
     }
@@ -337,5 +343,10 @@ public class JavaKernel extends BaseKernel {
     @Override
     public void onShutdown(boolean isRestarting) {
         this.evaluator.shutdown();
+    }
+
+    @Override
+    public void interrupt() {
+        this.evaluator.interrupt();
     }
 }
