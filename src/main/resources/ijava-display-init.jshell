@@ -18,23 +18,63 @@ io.github.spencerpark.jupyter.kernel.display.DisplayData render(Object o, String
     }
 }
 
-void display(Object o) {
+String display(Object o) {
     io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
 
     if (kernel != null) {
         io.github.spencerpark.jupyter.kernel.display.DisplayData data = kernel.getRenderer().render(o);
+
+        String id = data.getDisplayId();
+        if (id == null) {
+            id = java.util.UUID.randomUUID().toString();
+            data.setDisplayId(id);
+        }
+
         kernel.display(data);
+
+        return id;
     } else {
         throw new RuntimeException("No IJava kernel running");
     }
 }
 
-void display(Object o, String... as) {
+String display(Object o, String... as) {
     io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
 
     if (kernel != null) {
         io.github.spencerpark.jupyter.kernel.display.DisplayData data = kernel.getRenderer().renderAs(o, as);
+
+        String id = data.getDisplayId();
+        if (id == null) {
+            id = java.util.UUID.randomUUID().toString();
+            data.setDisplayId(id);
+        }
+
         kernel.display(data);
+
+        return id;
+    } else {
+        throw new RuntimeException("No IJava kernel running");
+    }
+}
+
+void updateDisplay(String id, Object o) {
+    io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
+
+    if (kernel != null) {
+        io.github.spencerpark.jupyter.kernel.display.DisplayData data = kernel.getRenderer().render(o);
+        kernel.getIO().display.updateDisplay(id, data);
+    } else {
+        throw new RuntimeException("No IJava kernel running");
+    }
+}
+
+void updateDisplay(String id, Object o, String... as) {
+    io.github.spencerpark.ijava.JavaKernel kernel = io.github.spencerpark.ijava.IJava.getKernelInstance();
+
+    if (kernel != null) {
+        io.github.spencerpark.jupyter.kernel.display.DisplayData data = kernel.getRenderer().renderAs(o, as);
+        kernel.getIO().display.updateDisplay(id, data);
     } else {
         throw new RuntimeException("No IJava kernel running");
     }
