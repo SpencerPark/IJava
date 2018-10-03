@@ -60,15 +60,15 @@ configurations {
 }
 
 repositories {
+    mavenCentral()
     maven {
         url = 'https://oss.sonatype.org/content/repositories/snapshots/'
     }
-    mavenCentral()
     mavenLocal()
 }
 
 dependencies {
-    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.2.3-SNAPSHOT'
+    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.2.3'
 
     shade group: 'org.jboss.shrinkwrap.resolver', name: 'shrinkwrap-resolver-impl-maven', version: '3.1.3'
 
