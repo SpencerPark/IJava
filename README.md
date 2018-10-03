@@ -57,13 +57,20 @@ Currently the kernel supports
 
 1.  [Java JDK >=9](http://www.oracle.com/technetwork/java/javase/downloads/index.html). **Not the JRE**
 
-    Ensure that the `java` command is in the PATH and is using version 9. For example:
-    ```bash
-    > java -version
-    java version "9"
-    Java(TM) SE Runtime Environment (build 9+181)
-    Java HotSpot(TM) 64-Bit Server VM (build 9+181, mixed mode)
-    ```
+    1.  Ensure that the `java` command is in the PATH and is using version 9. For example:
+        ```bash
+        > java -version
+        java version "9"
+        Java(TM) SE Runtime Environment (build 9+181)
+        Java HotSpot(TM) 64-Bit Server VM (build 9+181, mixed mode)
+        ```
+
+    2.  Next ensure that `java` is in a location where the jdk was installed and not just the jre. Use the `java --list-modules` command to do this. The list should contain `jdk.jshell`.
+
+        *   On *nix `java --list-modules | grep "jdk.jshell"`
+        *   On windows `java --list-modules | findstr "jdk.jshell"`
+
+        Both should output `jdk.jshell@` followed by your java version.
 
     If the kernel cannot start with an error along the lines of
     ```text
