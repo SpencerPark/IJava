@@ -38,7 +38,7 @@ public class MagicsSourceTransformer {
     private final MagicParser parser;
 
     public MagicsSourceTransformer() {
-        this.parser = new MagicParser("%", "%%");
+        this.parser = new MagicParser("(?<=(?:^|=))\\s*%", "%%");
     }
 
     public String transformMagics(String source) {
