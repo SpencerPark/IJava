@@ -220,6 +220,6 @@ Then at the prompt try:
 ```java
 In [1]: String helloWorld = "Hello world!"
 
-In [2]: helloWorld
+In [2]: Hello World
 Out[2]: "Hello world!"
 ```
