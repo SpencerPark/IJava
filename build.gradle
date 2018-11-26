@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'maven-publish'
     id('com.github.hierynomus.license') version '0.14.0'
-    id('io.github.spencerpark.jupyter-kernel-installer') version '2.0.0'
+    id('io.github.spencerpark.jupyter-kernel-installer') version '2.1.0'
     id('com.github.jk1.dependency-license-report')
 }
 
@@ -140,7 +140,6 @@ jupyter {
 }
 
 installKernel {
-    //pythonExecutable = 'python'
     kernelInstallPath = commandLineSpecifiedPath(userInstallPath)
 }
 
