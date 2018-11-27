@@ -23,16 +23,22 @@
  */
 package io.github.spencerpark.ijava;
 
+import io.github.spencerpark.ijava.magics.dependencies.CommonRepositories;
 import io.github.spencerpark.jupyter.kernel.magic.registry.CellMagic;
 import io.github.spencerpark.jupyter.kernel.magic.registry.LineMagic;
-import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
-import org.jboss.shrinkwrap.resolver.api.maven.ConfigurableMavenResolverSystem;
-import org.jboss.shrinkwrap.resolver.api.maven.Maven;
-import org.jboss.shrinkwrap.resolver.api.maven.PomEquippedResolveStage;
-import org.jboss.shrinkwrap.resolver.api.maven.ScopeType;
-import org.jboss.shrinkwrap.resolver.api.maven.repository.MavenRemoteRepositories;
-import org.jboss.shrinkwrap.resolver.api.maven.repository.MavenRemoteRepository;
-import org.jboss.shrinkwrap.resolver.api.maven.strategy.TransitiveStrategy;
+import org.apache.ivy.Ivy;
+import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
+import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor;
+import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
+import org.apache.ivy.core.module.id.ModuleRevisionId;
+import org.apache.ivy.core.report.ArtifactDownloadReport;
+import org.apache.ivy.core.report.ResolveReport;
+import org.apache.ivy.core.resolve.ResolveOptions;
+import org.apache.ivy.core.settings.IvySettings;
+import org.apache.ivy.plugins.parser.m2.PomModuleDescriptorParser;
+import org.apache.ivy.plugins.repository.url.URLResource;
+import org.apache.ivy.plugins.resolver.ChainResolver;
+import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -48,40 +54,162 @@ import java.io.*;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.text.ParseException;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class MavenResolver {
+    private static final String DEFAULT_RESOLVER_NAME = "default";
+    private static final Pattern IVY_MRID_PATTERN = Pattern.compile(
+            "^(?<organization>[-\\w/._+=]*)#(?<name>[-\\w/._+=]+)(?:#(?<branch>[-\\w/._+=]+))?;(?<revision>[-\\w/._+=,\\[\\]{}():@]+)$"
+    );
+    private static final Pattern MAVEN_MRID_PATTERN = Pattern.compile(
+            "^(?<group>[^:\\s]+):(?<artifact>[^:\\s]+)(?::(?<packaging>[^:\\s]*)(?::(?<classifier>[^:\\s]+))?)?:(?<version>[^:\\s]+)$"
+    );
+
     private final Consumer<String> addToClasspath;
-    private final List<MavenRemoteRepository> repos;
+    private final List<DependencyResolver> repos;
 
     public MavenResolver(Consumer<String> addToClasspath) {
         this.addToClasspath = addToClasspath;
         this.repos = new LinkedList<>();
+        this.repos.add(CommonRepositories.mavenCentral());
     }
 
     public void addRemoteRepo(String name, String url) {
-        this.repos.add(MavenRemoteRepositories.createRemoteRepository(name, url, "default"));
+        if (DEFAULT_RESOLVER_NAME.equals(name))
+            throw new IllegalArgumentException("Illegal repository name, cannot use '" + DEFAULT_RESOLVER_NAME + "'.");
+
+        this.repos.add(CommonRepositories.maven(name, url));
     }
 
-    public void addRemoteRepo(String name, URL url) {
-        this.repos.add(MavenRemoteRepositories.createRemoteRepository(name, url, "default"));
+    private DependencyResolver searchAllReposResolver() {
+        ChainResolver resolver = new ChainResolver();
+        resolver.setName(DEFAULT_RESOLVER_NAME);
+
+        this.repos.forEach(resolver::add);
+
+        return resolver;
     }
 
-    public List<File> resolveMavenDependency(String canonical) {
-        ConfigurableMavenResolverSystem resolver = Maven.configureResolver()
-                .withClassPathResolution(true)
-                .withMavenCentralRepo(true);
+    private static ModuleRevisionId parseCanonicalArtifactName(String canonical) {
+        Matcher m = IVY_MRID_PATTERN.matcher(canonical);
+        if (m.matches()) {
+            System.out.println(m.toString());
+            return ModuleRevisionId.newInstance(
+                    m.group("organization"),
+                    m.group("name"),
+                    m.group("branch"),
+                    m.group("revision")
+            );
+        }
 
-        this.repos.forEach(resolver::withRemoteRepo);
+        m = MAVEN_MRID_PATTERN.matcher(canonical);
+        if (m.matches()) {
+            System.out.printf("packaging=%s, classifier=%s, group=%s, artifact=%s, version=%s%n",
+                    m.group("packaging"), m.group("classifier"), m.group("group"), m.group("artifact"), m.group("version"));
 
-        return resolver.resolve(canonical)
-                .using(TransitiveStrategy.INSTANCE)
-                .asList(File.class);
+            String packaging = m.group("packaging");
+            String classifier = m.group("classifier");
+
+            return ModuleRevisionId.newInstance(
+                    m.group("group"),
+                    m.group("artifact"),
+                    m.group("version"),
+                    packaging == null
+                            ? Collections.emptyMap()
+                            : classifier == null
+                                    ? Map.of("ext", packaging)
+                                    : Map.of("ext", packaging, "m:classifier", classifier)
+            );
+        }
+
+        throw new IllegalArgumentException("Cannot resolve '" + canonical + "' as maven or ivy coordinates.");
     }
+
+    public List<File> resolveMavenDependency(String canonical) throws IOException, ParseException {
+        DependencyResolver rootResolver = this.searchAllReposResolver();
+
+        IvySettings settings = new IvySettings();
+
+        settings.addResolver(rootResolver);
+        settings.setDefaultResolver(rootResolver.getName());
+
+        Ivy ivy = Ivy.newInstance(settings);
+
+        ResolveOptions resolveOptions = new ResolveOptions();
+        resolveOptions.setTransitive(true);
+        resolveOptions.setDownload(true);
+
+        // Create a fake module that we will add dependencies to.
+        DefaultModuleDescriptor mockContainerModule = DefaultModuleDescriptor.newDefaultInstance(
+                ModuleRevisionId.newInstance(
+                        "ijava",
+                        "runtime-dependencies",
+                        "0.0.0"
+                )
+        );
+
+        ModuleRevisionId artifactIdentifier = MavenResolver.parseCanonicalArtifactName(canonical);
+        DefaultDependencyDescriptor dependency = new DefaultDependencyDescriptor(
+                mockContainerModule,
+                artifactIdentifier,
+                false, // Don't force, let the conflict manager figure things out.
+                false, // The maven resolvers figure out if it is a SNAPSHOT dep and set this
+                true // We want all transitive dependencies because it needs to be used now
+        );
+        dependency.addDependencyConfiguration("default", "default");
+        mockContainerModule.addDependency(dependency);
+
+        ResolveReport resolved = ivy.resolve(mockContainerModule, resolveOptions);
+        if (resolved.hasError())
+            // TODO better error...
+            throw new RuntimeException("Error resolving '" + canonical + "'. " + resolved.getAllProblemMessages());
+
+        return Arrays.stream(resolved.getAllArtifactsReports())
+                .map(ArtifactDownloadReport::getLocalFile)
+                .collect(Collectors.toList());
+    }
+
+    private File convertPomToIvy(File pomFile) throws IOException, ParseException {
+        IvySettings settings = new IvySettings();
+        PomModuleDescriptorParser parser = PomModuleDescriptorParser.getInstance();
+
+        URL pomUrl = pomFile.toURI().toURL();
+
+        ModuleDescriptor pomModule = parser.parseDescriptor(settings, pomFile.toURI().toURL(), false);
+
+        File tempIvyFile = File.createTempFile("ijava-ivy-", ".xml").getAbsoluteFile();
+        tempIvyFile.deleteOnExit();
+
+        parser.toIvyFile(pomUrl.openStream(), new URLResource(pomUrl), tempIvyFile, pomModule);
+
+        return tempIvyFile;
+    }
+
+    private List<File> resolveFromIvyFile(File ivyFile, List<String> scopes) throws IOException, ParseException {
+        IvySettings settings = new IvySettings();
+        // TODO setDefaultCache?
+
+        Ivy ivy = Ivy.newInstance(settings);
+
+        ResolveOptions resolveOptions = new ResolveOptions();
+        resolveOptions.setTransitive(true);
+        resolveOptions.setDownload(true);
+
+        ResolveReport resolved = ivy.resolve(ivyFile);
+        if (resolved.hasError())
+            // TODO better error...
+            throw new RuntimeException("Error resolving '" + ivyFile + "'. " + resolved.getAllProblemMessages());
+
+        return Arrays.stream(resolved.getAllArtifactsReports())
+                .map(ArtifactDownloadReport::getLocalFile)
+                .collect(Collectors.toList());
+    }
+
 
     private String solidifyPartialPOM(String rawIn) throws ParserConfigurationException, IOException, SAXException, TransformerException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -208,11 +336,15 @@ public class MavenResolver {
     @LineMagic(aliases = { "addMavenDependency", "maven" })
     public void addMavenDependencies(List<String> args) {
         for (String arg : args) {
-            this.addJarsToClasspath(
-                    this.resolveMavenDependency(arg).stream()
-                            .map(File::getAbsolutePath)
-                            ::iterator
-            );
+            try {
+                this.addJarsToClasspath(
+                        this.resolveMavenDependency(arg).stream()
+                                .map(File::getAbsolutePath)
+                                ::iterator
+                );
+            } catch (IOException | ParseException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -230,12 +362,14 @@ public class MavenResolver {
     @CellMagic
     public void loadFromPOM(List<String> args, String body) throws Exception {
         try {
-            Path tempPom = Files.createTempFile("ijava-maven-", ".pom");
+            File tempPomPath = File.createTempFile("ijava-maven-", ".pom").getAbsoluteFile();
+            tempPomPath.deleteOnExit();
+
             String rawPom = this.solidifyPartialPOM(body);
-            Files.write(tempPom, rawPom.getBytes(Charset.forName("utf-8")));
+            Files.write(tempPomPath.toPath(), rawPom.getBytes(Charset.forName("utf-8")));
 
             List<String> loadArgs = new ArrayList<>(args.size() + 1);
-            loadArgs.add(tempPom.toAbsolutePath().toString());
+            loadArgs.add(tempPomPath.getAbsolutePath());
             loadArgs.addAll(args);
 
             this.loadFromPOM(loadArgs);
@@ -252,19 +386,15 @@ public class MavenResolver {
         String pomFile = args.get(0);
         List<String> scopes = args.subList(1, args.size());
 
-        PomEquippedResolveStage stage = Maven.resolver().loadPomFromFile(pomFile);
-
-        if (scopes.isEmpty())
-            stage = stage.importCompileAndRuntimeDependencies();
-        else
-            stage = stage.importDependencies(scopes.stream().map(ScopeType::fromScopeType).toArray(ScopeType[]::new));
-
-        this.addJarsToClasspath(
-                stage.resolve()
-                        .withTransitivity()
-                        .asList(File.class).stream()
-                        .map(File::getAbsolutePath)
-                        ::iterator
-        );
+        try {
+            File ivyFile = this.convertPomToIvy(new File(pomFile));
+            this.addJarsToClasspath(
+                    this.resolveFromIvyFile(ivyFile, scopes).stream()
+                            .map(File::getAbsolutePath)
+                            ::iterator
+            );
+        } catch (IOException | ParseException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
