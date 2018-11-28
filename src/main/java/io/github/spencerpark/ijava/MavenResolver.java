@@ -144,27 +144,14 @@ public class MavenResolver {
         resolveOptions.setTransitive(true);
         resolveOptions.setDownload(true);
 
-        // Create a fake module that we will add dependencies to.
-        DefaultModuleDescriptor mockContainerModule = DefaultModuleDescriptor.newDefaultInstance(
-                ModuleRevisionId.newInstance(
-                        "ijava",
-                        "runtime-dependencies",
-                        "0.0.0"
-                )
-        );
-
         ModuleRevisionId artifactIdentifier = MavenResolver.parseCanonicalArtifactName(canonical);
-        DefaultDependencyDescriptor dependency = new DefaultDependencyDescriptor(
-                mockContainerModule,
-                artifactIdentifier,
-                false, // Don't force, let the conflict manager figure things out.
-                false, // The maven resolvers figure out if it is a SNAPSHOT dep and set this
-                true // We want all transitive dependencies because it needs to be used now
+        DefaultModuleDescriptor containerModule = DefaultModuleDescriptor.newCallerInstance(
+                new ModuleRevisionId[]{ artifactIdentifier },
+                true, // Transitive
+                false // Changing - the resolver will set this based on SNAPSHOT since they are all m2 compatible
         );
-        dependency.addDependencyConfiguration("default", "default");
-        mockContainerModule.addDependency(dependency);
 
-        ResolveReport resolved = ivy.resolve(mockContainerModule, resolveOptions);
+        ResolveReport resolved = ivy.resolve(containerModule, resolveOptions);
         if (resolved.hasError())
             // TODO better error...
             throw new RuntimeException("Error resolving '" + canonical + "'. " + resolved.getAllProblemMessages());
