@@ -24,10 +24,11 @@
 package io.github.spencerpark.ijava;
 
 import io.github.spencerpark.ijava.magics.dependencies.CommonRepositories;
+import io.github.spencerpark.ijava.magics.dependencies.Maven;
+import io.github.spencerpark.ijava.magics.dependencies.MavenToIvy;
 import io.github.spencerpark.jupyter.kernel.magic.registry.CellMagic;
 import io.github.spencerpark.jupyter.kernel.magic.registry.LineMagic;
 import org.apache.ivy.Ivy;
-import org.apache.ivy.core.module.descriptor.DefaultDependencyDescriptor;
 import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor;
 import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
@@ -39,6 +40,10 @@ import org.apache.ivy.plugins.parser.m2.PomModuleDescriptorParser;
 import org.apache.ivy.plugins.repository.url.URLResource;
 import org.apache.ivy.plugins.resolver.ChainResolver;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
+import org.apache.ivy.util.DefaultMessageLogger;
+import org.apache.ivy.util.Message;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.building.ModelBuildingException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -63,6 +68,31 @@ import java.util.stream.Collectors;
 
 public class MavenResolver {
     private static final String DEFAULT_RESOLVER_NAME = "default";
+
+    /**
+     * "master" includes the artifact published by the module.
+     * "runtime" includes the dependencies required for the module to run and
+     * extends "compile" which is the dependencies required to compile the module.
+     */
+    private static final String[] DEFAULT_RESOLVE_CONFS = { "master", "runtime" };
+
+    /**
+     * The ivy artifact type corresponding to a binary artifact for a module.
+     */
+    private static final String JAR_TYPE = "jar";
+
+    /**
+     * The ivy artifact type corresponding to a source code artifact for a module. This
+     * is still usually a ".jar" file but that corresponds to the "ext" not the "type".
+     */
+    private static final String SOURCE_TYPE = "source";
+
+    /**
+     * The ivy artifact type corresponding to a javadoc (HTML) artifact for a module. This
+     *      * is still usually a ".jar" file but that corresponds to the "ext" not the "type".
+     */
+    private static final String JAVADOC_TYPE = "javadoc";
+
     private static final Pattern IVY_MRID_PATTERN = Pattern.compile(
             "^(?<organization>[-\\w/._+=]*)#(?<name>[-\\w/._+=]+)(?:#(?<branch>[-\\w/._+=]+))?;(?<revision>[-\\w/._+=,\\[\\]{}():@]+)$"
     );
@@ -130,15 +160,25 @@ public class MavenResolver {
         throw new IllegalArgumentException("Cannot resolve '" + canonical + "' as maven or ivy coordinates.");
     }
 
+    private Ivy createDefaultIvyInstance() {
+        Ivy ivy = new Ivy();
+
+        ivy.getLoggerEngine().setDefaultLogger(new DefaultMessageLogger(Message.MSG_VERBOSE));
+        ivy.setSettings(new IvySettings());
+
+        ivy.bind();
+
+        return ivy;
+    }
+
     public List<File> resolveMavenDependency(String canonical) throws IOException, ParseException {
         DependencyResolver rootResolver = this.searchAllReposResolver();
 
-        IvySettings settings = new IvySettings();
+        Ivy ivy = this.createDefaultIvyInstance();
+        IvySettings settings = ivy.getSettings();
 
         settings.addResolver(rootResolver);
         settings.setDefaultResolver(rootResolver.getName());
-
-        Ivy ivy = Ivy.newInstance(settings);
 
         ResolveOptions resolveOptions = new ResolveOptions();
         resolveOptions.setTransitive(true);
@@ -146,7 +186,8 @@ public class MavenResolver {
 
         ModuleRevisionId artifactIdentifier = MavenResolver.parseCanonicalArtifactName(canonical);
         DefaultModuleDescriptor containerModule = DefaultModuleDescriptor.newCallerInstance(
-                new ModuleRevisionId[]{ artifactIdentifier },
+                artifactIdentifier,
+                DEFAULT_RESOLVE_CONFS,
                 true, // Transitive
                 false // Changing - the resolver will set this based on SNAPSHOT since they are all m2 compatible
         );
@@ -157,37 +198,49 @@ public class MavenResolver {
             throw new RuntimeException("Error resolving '" + canonical + "'. " + resolved.getAllProblemMessages());
 
         return Arrays.stream(resolved.getAllArtifactsReports())
+                .filter(a -> "jar".equalsIgnoreCase(a.getType()))
                 .map(ArtifactDownloadReport::getLocalFile)
                 .collect(Collectors.toList());
     }
 
     private File convertPomToIvy(File pomFile) throws IOException, ParseException {
-        IvySettings settings = new IvySettings();
         PomModuleDescriptorParser parser = PomModuleDescriptorParser.getInstance();
 
         URL pomUrl = pomFile.toURI().toURL();
 
-        ModuleDescriptor pomModule = parser.parseDescriptor(settings, pomFile.toURI().toURL(), false);
+        ModuleDescriptor pomModule = parser.parseDescriptor(new IvySettings(), pomFile.toURI().toURL(), false);
 
         File tempIvyFile = File.createTempFile("ijava-ivy-", ".xml").getAbsoluteFile();
         tempIvyFile.deleteOnExit();
 
         parser.toIvyFile(pomUrl.openStream(), new URLResource(pomUrl), tempIvyFile, pomModule);
 
+        // TODO print to the ivy messaging engine
+        Files.readAllLines(tempIvyFile.toPath(), Charset.forName("utf8"))
+                .forEach(System.out::println);
+
         return tempIvyFile;
     }
 
-    private List<File> resolveFromIvyFile(File ivyFile, List<String> scopes) throws IOException, ParseException {
-        IvySettings settings = new IvySettings();
-        // TODO setDefaultCache?
+    private void addPomReposToIvySettings(IvySettings settings, File pomFile) throws ModelBuildingException {
+        Model mavenModel = Maven.getInstance().readEffectiveModel(pomFile).getEffectiveModel();
+        ChainResolver pomRepos = MavenToIvy.createChainForModelRepositories(mavenModel);
+        pomRepos.setName(DEFAULT_RESOLVER_NAME);
 
-        Ivy ivy = Ivy.newInstance(settings);
+        settings.addResolver(pomRepos);
+        settings.setDefaultResolver(DEFAULT_RESOLVER_NAME);
+    }
 
+    private List<File> resolveFromIvyFile(Ivy ivy, File ivyFile, List<String> scopes) throws IOException, ParseException {
         ResolveOptions resolveOptions = new ResolveOptions();
         resolveOptions.setTransitive(true);
         resolveOptions.setDownload(true);
+        resolveOptions.setConfs(!scopes.isEmpty()
+                ? scopes.toArray(new String[0])
+                : DEFAULT_RESOLVE_CONFS
+        );
 
-        ResolveReport resolved = ivy.resolve(ivyFile);
+        ResolveReport resolved = ivy.resolve(ivyFile, resolveOptions);
         if (resolved.hasError())
             // TODO better error...
             throw new RuntimeException("Error resolving '" + ivyFile + "'. " + resolved.getAllProblemMessages());
@@ -317,7 +370,10 @@ public class MavenResolver {
     }
 
     public void addJarsToClasspath(Iterable<String> jars) {
-        jars.forEach(this.addToClasspath);
+        jars.forEach(jar -> {
+            System.out.println("Adding " + jar);
+            this.addToClasspath.accept(jar);
+        });
     }
 
     @LineMagic(aliases = { "addMavenDependency", "maven" })
@@ -370,17 +426,23 @@ public class MavenResolver {
         if (args.isEmpty())
             throw new IllegalArgumentException("Loading from POM requires at least the path to the POM file");
 
-        String pomFile = args.get(0);
+        String pomPath = args.get(0);
         List<String> scopes = args.subList(1, args.size());
 
+        File pomFile = new File(pomPath);
         try {
-            File ivyFile = this.convertPomToIvy(new File(pomFile));
+            File ivyFile = this.convertPomToIvy(pomFile);
+
+            Ivy ivy = this.createDefaultIvyInstance();
+            IvySettings settings = ivy.getSettings();
+            this.addPomReposToIvySettings(settings, pomFile);
+
             this.addJarsToClasspath(
-                    this.resolveFromIvyFile(ivyFile, scopes).stream()
+                    this.resolveFromIvyFile(ivy, ivyFile, scopes).stream()
                             .map(File::getAbsolutePath)
                             ::iterator
             );
-        } catch (IOException | ParseException e) {
+        } catch (IOException | ParseException | ModelBuildingException e) {
             throw new RuntimeException(e);
         }
     }
