@@ -28,6 +28,7 @@ import io.github.spencerpark.ijava.magics.dependencies.Maven;
 import io.github.spencerpark.ijava.magics.dependencies.MavenToIvy;
 import io.github.spencerpark.jupyter.kernel.magic.registry.CellMagic;
 import io.github.spencerpark.jupyter.kernel.magic.registry.LineMagic;
+import io.github.spencerpark.jupyter.kernel.magic.registry.MagicsArgs;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor;
 import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
@@ -42,6 +43,7 @@ import org.apache.ivy.plugins.resolver.ChainResolver;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.util.DefaultMessageLogger;
 import org.apache.ivy.util.Message;
+import org.apache.ivy.util.MessageLogger;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.building.ModelBuildingException;
 import org.w3c.dom.Document;
@@ -56,6 +58,7 @@ import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -89,7 +92,7 @@ public class MavenResolver {
 
     /**
      * The ivy artifact type corresponding to a javadoc (HTML) artifact for a module. This
-     *      * is still usually a ".jar" file but that corresponds to the "ext" not the "type".
+     * is still usually a ".jar" file but that corresponds to the "ext" not the "type".
      */
     private static final String JAVADOC_TYPE = "javadoc";
 
@@ -116,11 +119,29 @@ public class MavenResolver {
         this.repos.add(CommonRepositories.maven(name, url));
     }
 
-    private DependencyResolver searchAllReposResolver() {
+    private ChainResolver searchAllReposResolver(Set<String> repos) {
         ChainResolver resolver = new ChainResolver();
         resolver.setName(DEFAULT_RESOLVER_NAME);
 
-        this.repos.forEach(resolver::add);
+        this.repos.stream()
+                .filter(r -> repos == null || repos.contains(r.getName().toLowerCase()))
+                .forEach(resolver::add);
+
+        if (repos != null) {
+            Set<String> resolverNames = resolver.getResolvers().stream()
+                    .map(d -> d.getName().toLowerCase())
+                    .collect(Collectors.toSet());
+            repos.removeAll(resolverNames);
+
+            repos.forEach(r -> {
+                try {
+                    URL url = new URL(r);
+                    resolver.add(CommonRepositories.maven("from-" + url.getHost(), r));
+                } catch (MalformedURLException e) {
+                    // Ignore as we will assume that a bad url was a name
+                }
+            });
+        }
 
         return resolver;
     }
@@ -128,7 +149,6 @@ public class MavenResolver {
     private static ModuleRevisionId parseCanonicalArtifactName(String canonical) {
         Matcher m = IVY_MRID_PATTERN.matcher(canonical);
         if (m.matches()) {
-            System.out.println(m.toString());
             return ModuleRevisionId.newInstance(
                     m.group("organization"),
                     m.group("name"),
@@ -139,9 +159,6 @@ public class MavenResolver {
 
         m = MAVEN_MRID_PATTERN.matcher(canonical);
         if (m.matches()) {
-            System.out.printf("packaging=%s, classifier=%s, group=%s, artifact=%s, version=%s%n",
-                    m.group("packaging"), m.group("classifier"), m.group("group"), m.group("artifact"), m.group("version"));
-
             String packaging = m.group("packaging");
             String classifier = m.group("classifier");
 
@@ -160,25 +177,44 @@ public class MavenResolver {
         throw new IllegalArgumentException("Cannot resolve '" + canonical + "' as maven or ivy coordinates.");
     }
 
-    private Ivy createDefaultIvyInstance() {
+    /**
+     * Create an ivy instance with the specified verbosity. The instance is relatively plain.
+     *
+     * @param verbosity the verbosity level.
+     *                  <ol start="0">
+     *                  <li>ERROR</li>
+     *                  <li>WANRING</li>
+     *                  <li>INFO</li>
+     *                  <li>VERBOSE</li>
+     *                  <li>DEBUG</li>
+     *                  </ol>
+     *
+     * @return the fresh ivy instance.
+     */
+    private Ivy createDefaultIvyInstance(int verbosity) {
+        MessageLogger logger = new DefaultMessageLogger(verbosity);
+
+        // Set the default logger since not all things log to the ivy instance.
+        Message.setDefaultLogger(logger);
         Ivy ivy = new Ivy();
 
-        ivy.getLoggerEngine().setDefaultLogger(new DefaultMessageLogger(Message.MSG_VERBOSE));
+        ivy.getLoggerEngine().setDefaultLogger(logger);
         ivy.setSettings(new IvySettings());
-
         ivy.bind();
 
         return ivy;
     }
 
-    public List<File> resolveMavenDependency(String canonical) throws IOException, ParseException {
-        DependencyResolver rootResolver = this.searchAllReposResolver();
+    public List<File> resolveMavenDependency(String canonical, Set<String> repos, int verbosity) throws IOException, ParseException {
+        ChainResolver rootResolver = this.searchAllReposResolver(repos);
 
-        Ivy ivy = this.createDefaultIvyInstance();
+        Ivy ivy = this.createDefaultIvyInstance(verbosity);
         IvySettings settings = ivy.getSettings();
 
         settings.addResolver(rootResolver);
         settings.setDefaultResolver(rootResolver.getName());
+
+        ivy.getLoggerEngine().info("Searching for dependencies in: " + rootResolver.getResolvers());
 
         ResolveOptions resolveOptions = new ResolveOptions();
         resolveOptions.setTransitive(true);
@@ -189,21 +225,33 @@ public class MavenResolver {
                 artifactIdentifier,
                 DEFAULT_RESOLVE_CONFS,
                 true, // Transitive
-                false // Changing - the resolver will set this based on SNAPSHOT since they are all m2 compatible
+                repos != null // Changing - the resolver will set this based on SNAPSHOT since they are all m2 compatible
+                // but if `repos` is specified, we want to force a lookup.
         );
 
         ResolveReport resolved = ivy.resolve(containerModule, resolveOptions);
-        if (resolved.hasError())
+        if (resolved.hasError()) {
+            MessageLogger logger = ivy.getLoggerEngine();
+            Arrays.stream(resolved.getAllArtifactsReports())
+                    .forEach(r -> {
+                        logger.error("download " + r.getDownloadStatus() + ": " + r.getArtifact() + " of " + r.getType());
+                        if (r.getArtifactOrigin() == null)
+                            logger.error("\tCouldn't find artifact.");
+                        else
+                            logger.error("\tfrom: " + r.getArtifactOrigin());
+                    });
+
             // TODO better error...
             throw new RuntimeException("Error resolving '" + canonical + "'. " + resolved.getAllProblemMessages());
+        }
 
         return Arrays.stream(resolved.getAllArtifactsReports())
-                .filter(a -> "jar".equalsIgnoreCase(a.getType()))
+                .filter(a -> JAR_TYPE.equalsIgnoreCase(a.getType()))
                 .map(ArtifactDownloadReport::getLocalFile)
                 .collect(Collectors.toList());
     }
 
-    private File convertPomToIvy(File pomFile) throws IOException, ParseException {
+    private File convertPomToIvy(Ivy ivy, File pomFile) throws IOException, ParseException {
         PomModuleDescriptorParser parser = PomModuleDescriptorParser.getInstance();
 
         URL pomUrl = pomFile.toURI().toURL();
@@ -215,9 +263,8 @@ public class MavenResolver {
 
         parser.toIvyFile(pomUrl.openStream(), new URLResource(pomUrl), tempIvyFile, pomModule);
 
-        // TODO print to the ivy messaging engine
-        Files.readAllLines(tempIvyFile.toPath(), Charset.forName("utf8"))
-                .forEach(System.out::println);
+        MessageLogger logger = ivy.getLoggerEngine();
+        logger.info(new String(Files.readAllBytes(tempIvyFile.toPath()), Charset.forName("utf8")));
 
         return tempIvyFile;
     }
@@ -370,18 +417,32 @@ public class MavenResolver {
     }
 
     public void addJarsToClasspath(Iterable<String> jars) {
-        jars.forEach(jar -> {
-            System.out.println("Adding " + jar);
-            this.addToClasspath.accept(jar);
-        });
+        jars.forEach(this.addToClasspath);
     }
 
     @LineMagic(aliases = { "addMavenDependency", "maven" })
     public void addMavenDependencies(List<String> args) {
-        for (String arg : args) {
+        MagicsArgs schema = MagicsArgs.builder()
+                .varargs("deps")
+                .keyword("from")
+                .flag("verbose", 'v')
+                .onlyKnownKeywords()
+                .onlyKnownFlags()
+                .build();
+
+        Map<String, List<String>> vals = schema.parse(args);
+
+        List<String> deps = vals.get("deps");
+        List<String> from = vals.get("from");
+        int verbosity = vals.get("verbose").size();
+
+        Set<String> repos = from.isEmpty() ? null : new LinkedHashSet<>(from);
+
+
+        for (String dep : deps) {
             try {
                 this.addJarsToClasspath(
-                        this.resolveMavenDependency(arg).stream()
+                        this.resolveMavenDependency(dep, repos, verbosity).stream()
                                 .map(File::getAbsolutePath)
                                 ::iterator
                 );
@@ -393,11 +454,11 @@ public class MavenResolver {
 
     @LineMagic(aliases = { "mavenRepo" })
     public void addMavenRepo(List<String> args) {
-        if (args.size() != 2)
-            throw new IllegalArgumentException("Expected 2 arguments: repository id and url. Got: " + args);
+        MagicsArgs schema = MagicsArgs.builder().required("id").required("url").build();
+        Map<String, List<String>> vals = schema.parse(args);
 
-        String id = args.get(0);
-        String url = args.get(1);
+        String id = vals.get("id").get(0);
+        String url = vals.get("url").get(0);
 
         this.addRemoteRepo(id, url);
     }
@@ -426,15 +487,25 @@ public class MavenResolver {
         if (args.isEmpty())
             throw new IllegalArgumentException("Loading from POM requires at least the path to the POM file");
 
-        String pomPath = args.get(0);
-        List<String> scopes = args.subList(1, args.size());
+        MagicsArgs schema = MagicsArgs.builder()
+                .required("pomPath")
+                .varargs("scopes")
+                .flag("verbose", 'v')
+                .onlyKnownKeywords().onlyKnownFlags().build();
+
+        Map<String, List<String>> vals = schema.parse(args);
+
+        String pomPath = vals.get("pomPath").get(0);
+        List<String> scopes = vals.get("scopes");
+        int verbosity = vals.get("verbose").size();
 
         File pomFile = new File(pomPath);
         try {
-            File ivyFile = this.convertPomToIvy(pomFile);
-
-            Ivy ivy = this.createDefaultIvyInstance();
+            Ivy ivy = this.createDefaultIvyInstance(verbosity);
             IvySettings settings = ivy.getSettings();
+
+            File ivyFile = this.convertPomToIvy(ivy, pomFile);
+
             this.addPomReposToIvySettings(settings, pomFile);
 
             this.addJarsToClasspath(

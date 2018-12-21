@@ -68,7 +68,7 @@ repositories {
 }
 
 dependencies {
-    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.2.3'
+    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.2.4-SNAPSHOT'
 
     shade group: 'org.apache.ivy', name: 'ivy', version: '2.5.0-rc1'
     //shade group: 'org.apache.maven', name: 'maven-settings-builder', version: '3.6.0'
