@@ -110,6 +110,7 @@ public class MavenResolver {
         this.addToClasspath = addToClasspath;
         this.repos = new LinkedList<>();
         this.repos.add(CommonRepositories.mavenCentral());
+        this.repos.add(CommonRepositories.mavenLocal());
     }
 
     public void addRemoteRepo(String name, String url) {
@@ -205,6 +206,8 @@ public class MavenResolver {
         return ivy;
     }
 
+    // TODO support multiple at once. This is necessary for conflict resolution with multiple overlapping dependencies.
+    // TODO support classpath resolution
     public List<File> resolveMavenDependency(String canonical, Set<String> repos, int verbosity) throws IOException, ParseException {
         ChainResolver rootResolver = this.searchAllReposResolver(repos);
 
@@ -212,6 +215,7 @@ public class MavenResolver {
         IvySettings settings = ivy.getSettings();
 
         settings.addResolver(rootResolver);
+        rootResolver.setCheckmodified(true);
         settings.setDefaultResolver(rootResolver.getName());
 
         ivy.getLoggerEngine().info("Searching for dependencies in: " + rootResolver.getResolvers());

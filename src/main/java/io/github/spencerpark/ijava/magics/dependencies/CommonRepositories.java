@@ -1,6 +1,5 @@
 package io.github.spencerpark.ijava.magics.dependencies;
 
-import org.apache.ivy.plugins.repository.file.FileRepository;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.plugins.resolver.IBiblioResolver;
 import org.xml.sax.SAXException;
@@ -9,6 +8,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 public class CommonRepositories {
+    protected static final String MAVEN_PATTERN_PREFIX = "[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier])";
+    protected static final String MAVEN_ARTIFACT_PATTERN = MAVEN_PATTERN_PREFIX + ".[ext]";
+    protected static final String MAVEN_POM_PATTERN = MAVEN_PATTERN_PREFIX + ".pom";
+
     public static DependencyResolver maven(String name, String urlRaw) {
         IBiblioResolver resolver = new IBiblioResolver();
         resolver.setM2compatible(true);
@@ -22,7 +25,7 @@ public class CommonRepositories {
     }
 
     public static DependencyResolver mavenCentral() {
-        return CommonRepositories.maven("maven-central","https://repo.maven.apache.org/maven2/");
+        return CommonRepositories.maven("maven-central", "https://repo.maven.apache.org/maven2/");
     }
 
     public static DependencyResolver jcenter() {
@@ -34,6 +37,7 @@ public class CommonRepositories {
         resolver.setM2compatible(true);
         resolver.setUseMavenMetadata(true);
         resolver.setUsepoms(true);
+
         resolver.setName("maven-local");
 
         Path localRepoPath;
@@ -45,11 +49,7 @@ public class CommonRepositories {
             throw new RuntimeException("Error parsing maven settings. " + e.getLocalizedMessage(), e);
         }
 
-        FileRepository mavenLocalRepo = new FileRepository();
-        mavenLocalRepo.setLocal(true);
-        mavenLocalRepo.setBaseDir(localRepoPath.toFile());
-
-        resolver.setRepository(mavenLocalRepo);
+        resolver.setRoot("file:///" + localRepoPath.toString());
 
         return resolver;
     }

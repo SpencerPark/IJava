@@ -111,6 +111,9 @@ public class Maven {
     }
 
     private Path readConfiguredLocalRepositoryPath(Path settingsXmlPath) throws IOException, SAXException {
+        if (!Files.isRegularFile(settingsXmlPath))
+            return null;
+
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setValidating(false);
 
