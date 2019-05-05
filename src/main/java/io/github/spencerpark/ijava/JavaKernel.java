@@ -354,7 +354,7 @@ public class JavaKernel extends BaseKernel {
                 .distinct()
                 .collect(Collectors.toList());
 
-        return new ReplacementOptions(options, replaceStart[0], at + 1);
+        return new ReplacementOptions(options, replaceStart[0], at);
     }
 
     @Override
