@@ -103,7 +103,7 @@ public class JavaKernel extends BaseKernel {
         this.languageInfo = new LanguageInfo.Builder("Java")
                 .version(Runtime.version().toString())
                 .mimetype("text/x-java-source")
-                .fileExtension(".java")
+                .fileExtension(".jshell")
                 .pygments("java")
                 .codemirror("java")
                 .build();
