@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.github.spencerpark.ijava;
+package io.github.spencerpark.ijava.magics;
 
 import io.github.spencerpark.ijava.magics.dependencies.CommonRepositories;
 import io.github.spencerpark.ijava.magics.dependencies.Maven;

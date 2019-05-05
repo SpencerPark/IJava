@@ -24,6 +24,8 @@
 package io.github.spencerpark.ijava;
 
 import io.github.spencerpark.ijava.execution.*;
+import io.github.spencerpark.ijava.magics.ClasspathMagics;
+import io.github.spencerpark.ijava.magics.MavenResolver;
 import io.github.spencerpark.jupyter.kernel.BaseKernel;
 import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
@@ -96,21 +98,7 @@ public class JavaKernel extends BaseKernel {
         this.magicsTransformer = new MagicsSourceTransformer();
         this.magics = new Magics();
         this.magics.registerMagics(this.mavenResolver);
-        this.magics.registerLineMagic("jars", args -> {
-            List<String> jars = args.stream()
-                    .map(GlobFinder::new)
-                    .flatMap(g -> {
-                        try {
-                            return StreamSupport.stream(g.computeMatchingPaths().spliterator(), false);
-                        } catch (IOException e) {
-                            throw new RuntimeException("Exception resolving jar glob", e);
-                        }
-                    })
-                    .map(p -> p.toAbsolutePath().toString())
-                    .collect(Collectors.toList());
-            jars.forEach(this::addToClasspath);
-            return jars;
-        });
+        this.magics.registerMagics(new ClasspathMagics(this::addToClasspath));
 
         this.languageInfo = new LanguageInfo.Builder("Java")
                 .version(Runtime.version().toString())
