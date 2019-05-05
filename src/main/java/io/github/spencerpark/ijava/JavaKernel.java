@@ -31,19 +31,17 @@ import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
 import io.github.spencerpark.jupyter.kernel.display.DisplayData;
 import io.github.spencerpark.jupyter.kernel.magic.registry.Magics;
+import io.github.spencerpark.jupyter.kernel.magic.common.Load;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
-import io.github.spencerpark.jupyter.kernel.util.GlobFinder;
 import io.github.spencerpark.jupyter.kernel.util.StringStyler;
 import io.github.spencerpark.jupyter.kernel.util.TextColor;
 import io.github.spencerpark.jupyter.messages.Header;
 import jdk.jshell.*;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class JavaKernel extends BaseKernel {
     public static String completeCodeSignifier() {
@@ -99,6 +97,7 @@ public class JavaKernel extends BaseKernel {
         this.magics = new Magics();
         this.magics.registerMagics(this.mavenResolver);
         this.magics.registerMagics(new ClasspathMagics(this::addToClasspath));
+        this.magics.registerMagics(new Load(List.of(".jsh", ".jshell", ".java", ".ijava"), this::eval));
 
         this.languageInfo = new LanguageInfo.Builder("Java")
                 .version(Runtime.version().toString())
