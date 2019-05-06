@@ -6,6 +6,10 @@ import java.util.concurrent.*;
 import java.util.prefs.*;
 import java.util.regex.*;
 
+import static io.github.spencerpark.ijava.runtime.Display.*;
+import static io.github.spencerpark.ijava.runtime.Kernel.*;
+import static io.github.spencerpark.ijava.runtime.Magics.*;
+
 public void printf(String format, Object... args) {
     System.out.printf(format, args);
 }

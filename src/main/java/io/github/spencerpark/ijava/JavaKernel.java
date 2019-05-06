@@ -81,9 +81,6 @@ public class JavaKernel extends BaseKernel {
                 .addClasspathFromString(System.getenv(IJava.CLASSPATH_KEY))
                 .compilerOptsFromString(System.getenv(IJava.COMPILER_OPTS_KEY))
                 .startupScript(IJava.resource(IJava.DEFAULT_SHELL_INIT_RESOURCE_PATH))
-                .startupScript(IJava.resource(IJava.MAGICS_INIT_RESOURCE_PATH))
-                .startupScript(IJava.resource(IJava.DISPLAY_INIT_RESOURCE_PATH))
-                .startupScript(IJava.resource(IJava.EVAL_INIT_RESOURCE_PATH))
                 .startupScriptFiles(System.getenv(IJava.STARTUP_SCRIPTS_KEY))
                 .startupScript(System.getenv(IJava.STARTUP_SCRIPT_KEY))
                 .timeoutFromString(System.getenv(IJava.TIMEOUT_DURATION_KEY))
@@ -181,6 +178,13 @@ public class JavaKernel extends BaseKernel {
         List<String> fmt = new ArrayList<>();
         SnippetEvent event = e.getBadSnippetCompilation();
         Snippet snippet = event.snippet();
+        System.out.println(snippet.kind());
+        System.out.println(snippet.subKind());
+        System.out.println(snippet.source());
+        System.out.println(event.status());
+        System.out.println(event.causeSnippet());
+        System.out.println(event.isSignatureChange());
+        System.out.println(event.value());
         this.evaluator.getShell().diagnostics(snippet)
                 .forEach(d -> {
                     // If has line information related, highlight that span
