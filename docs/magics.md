@@ -44,7 +44,18 @@ Add jars to the notebook classpath.
 ###### Line magic
 
 *   **arguments**:
-    *   _varargs_ list of simple glob paths to jars on the local file system
+    *   _varargs_ list of simple glob paths to jars on the local file system. If a glob matches a directory all files in that directory will be added.
+
+
+
+### classpath
+
+Add entries to the notebook classpath.
+
+###### Line magic
+
+*   **arguments**:
+    *   _varargs_ list of simple glob paths to entries on the local file system. This includes directories or jars.
 
 
 
