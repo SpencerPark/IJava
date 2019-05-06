@@ -178,13 +178,6 @@ public class JavaKernel extends BaseKernel {
         List<String> fmt = new ArrayList<>();
         SnippetEvent event = e.getBadSnippetCompilation();
         Snippet snippet = event.snippet();
-        System.out.println(snippet.kind());
-        System.out.println(snippet.subKind());
-        System.out.println(snippet.source());
-        System.out.println(event.status());
-        System.out.println(event.causeSnippet());
-        System.out.println(event.isSignatureChange());
-        System.out.println(event.value());
         this.evaluator.getShell().diagnostics(snippet)
                 .forEach(d -> {
                     // If has line information related, highlight that span
