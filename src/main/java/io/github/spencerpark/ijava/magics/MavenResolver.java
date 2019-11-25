@@ -41,6 +41,7 @@ import org.apache.ivy.plugins.parser.m2.PomModuleDescriptorParser;
 import org.apache.ivy.plugins.repository.url.URLResource;
 import org.apache.ivy.plugins.resolver.ChainResolver;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
+import org.apache.ivy.plugins.resolver.IBiblioResolver;
 import org.apache.ivy.util.DefaultMessageLogger;
 import org.apache.ivy.util.Message;
 import org.apache.ivy.util.MessageLogger;
@@ -225,6 +226,26 @@ public class MavenResolver {
         resolveOptions.setDownload(true);
 
         ModuleRevisionId artifactIdentifier = MavenResolver.parseCanonicalArtifactName(canonical);
+        if (artifactIdentifier.getExtraAttribute("m:classifier") != null) {
+            String pom = generatePom(artifactIdentifier, repos);
+            try {
+                List<String> args = new ArrayList<>();
+                if (verbosity > 0) {
+                    StringBuilder sb = new StringBuilder(6);
+                    sb.append('-');
+                    for (int i =0; i < verbosity; ++i) {
+                        sb.append('v');
+                    }
+                    args.add(sb.toString());
+                }
+                loadFromPOM(args, pom);
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            return Collections.emptyList();
+        }
         DefaultModuleDescriptor containerModule = DefaultModuleDescriptor.newCallerInstance(
                 artifactIdentifier,
                 DEFAULT_RESOLVE_CONFS,
@@ -253,6 +274,38 @@ public class MavenResolver {
                 .filter(a -> JAR_TYPE.equalsIgnoreCase(a.getType()))
                 .map(ArtifactDownloadReport::getLocalFile)
                 .collect(Collectors.toList());
+    }
+
+    private String generatePom(ModuleRevisionId mri, Set<String > repos) {
+        String groupId = mri.getModuleId().getOrganisation();
+        String artifactId = mri.getModuleId().getName();
+        String classifier = mri.getExtraAttribute("m:classifier");
+        String version = mri.getRevision();
+        StringBuilder sb = new StringBuilder(500);
+        sb.append("<repositories>");
+        Set<String> names = new HashSet<>();
+        int index = 0;
+        for (DependencyResolver resolver : this.searchAllReposResolver(repos).getResolvers()) {
+            String repoId = resolver.getName();
+            if (!names.add(repoId)) {
+                repoId += index;
+                ++index;
+            }
+            if (resolver instanceof IBiblioResolver) {
+                sb.append("<repository><id>").append(repoId).append("</id>");
+                sb.append("<url>").append(((IBiblioResolver) resolver).getRoot()).append("</url></repository>");
+            }
+        }
+        sb.append("</repositories>\n<dependencies><dependency><groupId>")
+                .append(groupId)
+                .append("</groupId><artifactId>")
+                .append(artifactId)
+                .append("</artifactId><version>")
+                .append(version)
+                .append("</version><classifier>")
+                .append(classifier)
+                .append("</classifier></dependency></dependencies>");
+        return sb.toString();
     }
 
     private File convertPomToIvy(Ivy ivy, File pomFile) throws IOException, ParseException {
