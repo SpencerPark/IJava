@@ -125,7 +125,7 @@ Get the latest version of the kernel but possibly run into some issues with inst
 
 2.  Build and install the kernel.
     
-    On *nix `chmod u+x gradlew && ./gradlew installKernel`
+    On *nix `./gradlew installKernel`
         
     On windows `gradlew installKernel`
 
