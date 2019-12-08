@@ -125,3 +125,13 @@ The cell magic is designed to make it very simple to copy and paste from any REA
       <version>2.0.0-SNAPSHOT</version>
     </dependency>
     ```
+    
+### exec
+
+Allow user to execute system program in jupyter notebook.
+
+###### Line magic
+
+*   **aliases**: `system`
+*   **arguments**:
+    *   _varargs_ list of external program and its command line arguments to be executed
