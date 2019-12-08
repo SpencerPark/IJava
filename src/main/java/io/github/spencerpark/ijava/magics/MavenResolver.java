@@ -117,7 +117,26 @@ public class MavenResolver {
         if (DEFAULT_RESOLVER_NAME.equals(name))
             throw new IllegalArgumentException("Illegal repository name, cannot use '" + DEFAULT_RESOLVER_NAME + "'.");
 
+        if (repoExists(name, url)) {
+            return;
+        }
         this.repos.add(CommonRepositories.maven(name, url));
+    }
+
+    private boolean repoExists(String name, String url) {
+        for (DependencyResolver resolver : this.repos) {
+            if (resolver.getName().equals(name)) {
+                if (resolver instanceof IBiblioResolver) {
+                    if (!url.equals("/")) {
+                        url += "/";
+                    }
+                    if (((IBiblioResolver) resolver).getRoot().equals(url)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private ChainResolver searchAllReposResolver(Set<String> repos) {
