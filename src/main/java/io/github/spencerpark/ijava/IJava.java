@@ -25,17 +25,17 @@ package io.github.spencerpark.ijava;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import io.github.spencerpark.jupyter.api.KernelConnectionProperties;
 import io.github.spencerpark.jupyter.channels.JupyterConnection;
 import io.github.spencerpark.jupyter.channels.JupyterSocket;
-import io.github.spencerpark.jupyter.kernel.KernelConnectionProperties;
+import io.github.spencerpark.jupyter.kernel.ZmqKernelConnector;
+import io.github.spencerpark.jupyter.kernel.extension.JupyterKernelExtensions;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.logging.Level;
 
 public class IJava {
@@ -44,6 +44,7 @@ public class IJava {
     public static final String CLASSPATH_KEY = "IJAVA_CLASSPATH";
     public static final String STARTUP_SCRIPTS_KEY = "IJAVA_STARTUP_SCRIPTS_PATH";
     public static final String STARTUP_SCRIPT_KEY = "IJAVA_STARTUP_SCRIPT";
+    public static final String EXTENSION_PATH_KEY = "IJAVA_EXTENSION_PATH";
 
     public static final String DEFAULT_SHELL_INIT_RESOURCE_PATH = "ijava-jshell-init.jshell";
 
@@ -57,7 +58,7 @@ public class IJava {
         InputStream metaStream = resource("ijava-kernel-metadata.json");
         Reader metaReader = new InputStreamReader(metaStream);
         try {
-            JsonElement meta = new JsonParser().parse(metaReader);
+            JsonElement meta = JsonParser.parseReader(metaReader);
             VERSION = meta.getAsJsonObject().get("version").getAsString();
         } finally {
             try {
@@ -99,7 +100,16 @@ public class IJava {
         JupyterConnection connection = new JupyterConnection(connProps);
 
         kernel = new JavaKernel();
-        kernel.becomeHandlerForConnection(connection);
+
+        JupyterKernelExtensions extensions = new JupyterKernelExtensions(kernel);
+
+        String extPath = System.getenv(IJava.EXTENSION_PATH_KEY);
+        if (extPath != null) {
+            extensions.loadAll(List.of(extPath.split(File.pathSeparator)), ClassLoader.getSystemClassLoader());
+        }
+
+        ZmqKernelConnector connector = new ZmqKernelConnector(kernel);
+        connector.connectKernelTo(connection);
 
         connection.connect();
         connection.waitUntilClose();

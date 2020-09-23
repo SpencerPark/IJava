@@ -1,7 +1,7 @@
 package io.github.spencerpark.ijava.runtime;
 
 import io.github.spencerpark.ijava.JavaKernel;
-import io.github.spencerpark.jupyter.kernel.display.DisplayData;
+import io.github.spencerpark.jupyter.api.display.DisplayData;
 
 import java.util.UUID;
 
@@ -10,7 +10,7 @@ public class Display {
         JavaKernel kernel = Kernel.getKernelInstance();
 
         if (kernel != null) {
-            return kernel.getRenderer().render(o);
+            return kernel.renderer().render(o);
         } else {
             throw new RuntimeException("No IJava kernel running");
         }
@@ -20,7 +20,7 @@ public class Display {
         JavaKernel kernel = Kernel.getKernelInstance();
 
         if (kernel != null) {
-            return kernel.getRenderer().renderAs(o, as);
+            return kernel.renderer().renderAs(o, as);
         } else {
             throw new RuntimeException("No IJava kernel running");
         }
@@ -30,7 +30,7 @@ public class Display {
         JavaKernel kernel = Kernel.getKernelInstance();
 
         if (kernel != null) {
-            DisplayData data = kernel.getRenderer().render(o);
+            DisplayData data = kernel.renderer().render(o);
 
             String id = data.getDisplayId();
             if (id == null) {
@@ -50,7 +50,7 @@ public class Display {
         JavaKernel kernel = Kernel.getKernelInstance();
 
         if (kernel != null) {
-            DisplayData data = kernel.getRenderer().renderAs(o, as);
+            DisplayData data = kernel.renderer().renderAs(o, as);
 
             String id = data.getDisplayId();
             if (id == null) {
@@ -70,8 +70,8 @@ public class Display {
         JavaKernel kernel = Kernel.getKernelInstance();
 
         if (kernel != null) {
-            DisplayData data = kernel.getRenderer().render(o);
-            kernel.getIO().display.updateDisplay(id, data);
+            DisplayData data = kernel.renderer().render(o);
+            kernel.io().display.updateDisplay(id, data);
         } else {
             throw new RuntimeException("No IJava kernel running");
         }
@@ -81,8 +81,8 @@ public class Display {
         JavaKernel kernel = Kernel.getKernelInstance();
 
         if (kernel != null) {
-            DisplayData data = kernel.getRenderer().renderAs(o, as);
-            kernel.getIO().display.updateDisplay(id, data);
+            DisplayData data = kernel.renderer().renderAs(o, as);
+            kernel.io().display.updateDisplay(id, data);
         } else {
             throw new RuntimeException("No IJava kernel running");
         }

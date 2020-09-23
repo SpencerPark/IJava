@@ -23,8 +23,8 @@
  */
 package io.github.spencerpark.ijava.execution;
 
-import io.github.spencerpark.jupyter.kernel.magic.CellMagicParseContext;
-import io.github.spencerpark.jupyter.kernel.magic.LineMagicParseContext;
+import io.github.spencerpark.jupyter.api.magic.CellMagicParseContext;
+import io.github.spencerpark.jupyter.api.magic.LineMagicParseContext;
 import io.github.spencerpark.jupyter.kernel.magic.MagicParser;
 
 import java.util.Base64;

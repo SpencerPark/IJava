@@ -23,7 +23,7 @@
  */
 package io.github.spencerpark.ijava.execution;
 
-import io.github.spencerpark.jupyter.kernel.util.GlobFinder;
+import io.github.spencerpark.jupyter.api.util.GlobFinder;
 import jdk.jshell.JShell;
 
 import java.io.*;

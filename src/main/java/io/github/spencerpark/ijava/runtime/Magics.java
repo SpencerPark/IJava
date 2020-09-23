@@ -2,7 +2,7 @@ package io.github.spencerpark.ijava.runtime;
 
 import io.github.spencerpark.ijava.IJava;
 import io.github.spencerpark.ijava.JavaKernel;
-import io.github.spencerpark.jupyter.kernel.magic.registry.UndefinedMagicException;
+import io.github.spencerpark.jupyter.api.magic.registry.UndefinedMagicException;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ public class Magics {
 
         if (kernel != null) {
             try {
-                return kernel.getMagics().applyLineMagic(name, args);
+                return kernel.magics().applyLineMagic(name, args);
             } catch (UndefinedMagicException e) {
                 throw e;
             } catch (Exception e) {
@@ -28,7 +28,7 @@ public class Magics {
 
         if (kernel != null) {
             try {
-                return kernel.getMagics().applyCellMagic(name, args, body);
+                return kernel.magics().applyCellMagic(name, args, body);
             } catch (UndefinedMagicException e) {
                 throw e;
             } catch (Exception e) {

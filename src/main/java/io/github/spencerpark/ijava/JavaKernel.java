@@ -26,15 +26,16 @@ package io.github.spencerpark.ijava;
 import io.github.spencerpark.ijava.execution.*;
 import io.github.spencerpark.ijava.magics.ClasspathMagics;
 import io.github.spencerpark.ijava.magics.MavenResolver;
+import io.github.spencerpark.jupyter.api.LanguageInfo;
+import io.github.spencerpark.jupyter.api.ReplacementOptions;
+import io.github.spencerpark.jupyter.api.display.DisplayData;
+import io.github.spencerpark.jupyter.api.display.StringStyler;
+import io.github.spencerpark.jupyter.api.display.TextColor;
+import io.github.spencerpark.jupyter.api.magic.registry.Magics;
+import io.github.spencerpark.jupyter.api.util.CharPredicate;
 import io.github.spencerpark.jupyter.kernel.BaseKernel;
-import io.github.spencerpark.jupyter.kernel.LanguageInfo;
-import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
-import io.github.spencerpark.jupyter.kernel.display.DisplayData;
-import io.github.spencerpark.jupyter.kernel.magic.registry.Magics;
 import io.github.spencerpark.jupyter.kernel.magic.common.Load;
-import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
-import io.github.spencerpark.jupyter.kernel.util.StringStyler;
-import io.github.spencerpark.jupyter.kernel.util.TextColor;
+import io.github.spencerpark.jupyter.kernel.magic.registry.DefaultMagics;
 import io.github.spencerpark.jupyter.messages.Header;
 import jdk.jshell.*;
 
@@ -76,7 +77,7 @@ public class JavaKernel extends BaseKernel {
 
     private final StringStyler errorStyler;
 
-    public JavaKernel() {
+    public JavaKernel() throws Exception {
         this.evaluator = new CodeEvaluatorBuilder()
                 .addClasspathFromString(System.getenv(IJava.CLASSPATH_KEY))
                 .compilerOptsFromString(System.getenv(IJava.COMPILER_OPTS_KEY))
@@ -90,8 +91,10 @@ public class JavaKernel extends BaseKernel {
                 .build();
         this.mavenResolver = new MavenResolver(this::addToClasspath);
 
+        // TODO DefaultMagics should prob be thread-safe? Also the base kernel should provide the implementation
+        // just like renderer and comm manager.
         this.magicsTransformer = new MagicsSourceTransformer();
-        this.magics = new Magics();
+        this.magics = new DefaultMagics();
         this.magics.registerMagics(this.mavenResolver);
         this.magics.registerMagics(new ClasspathMagics(this::addToClasspath));
         this.magics.registerMagics(new Load(List.of(".jsh", ".jshell", ".java", ".ijava"), this::eval));
@@ -103,12 +106,11 @@ public class JavaKernel extends BaseKernel {
                 .pygments("java")
                 .codemirror("java")
                 .build();
-        this.banner = String.format("Java %s :: IJava kernel %s \nProtocol v%s implementation by %s %s",
+        this.banner = String.format("Java %s :: IJava kernel %s \nProtocol v%s implementation by BaseKernel %s",
                 Runtime.version().toString(),
-                IJava.VERSION,
+                this.getKernelVersion(),
                 Header.PROTOCOL_VERISON,
-                KERNEL_META.getOrDefault("project", "UNKNOWN"),
-                KERNEL_META.getOrDefault("version", "UNKNOWN")
+                BaseKernel.VERSION
         );
         this.helpLinks = List.of(
                 new LanguageInfo.Help("Java tutorial", "https://docs.oracle.com/javase/tutorial/java/nutsandbolts/index.html"),
@@ -133,13 +135,24 @@ public class JavaKernel extends BaseKernel {
         return this.mavenResolver;
     }
 
-    public Magics getMagics() {
+    @Override
+    public Magics magics() {
         return this.magics;
     }
 
     @Override
     public LanguageInfo getLanguageInfo() {
         return this.languageInfo;
+    }
+
+    @Override
+    public String getKernelName() {
+        return "IJava";
+    }
+
+    @Override
+    public String getKernelVersion() {
+        return IJava.VERSION;
     }
 
     @Override
@@ -283,7 +296,7 @@ public class JavaKernel extends BaseKernel {
         if (result != null)
             return result instanceof DisplayData
                     ? (DisplayData) result
-                    : this.getRenderer().render(result);
+                    : this.renderer().render(result);
 
         return null;
     }

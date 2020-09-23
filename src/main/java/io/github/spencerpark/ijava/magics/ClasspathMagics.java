@@ -1,7 +1,7 @@
 package io.github.spencerpark.ijava.magics;
 
-import io.github.spencerpark.jupyter.kernel.magic.registry.LineMagic;
-import io.github.spencerpark.jupyter.kernel.util.GlobFinder;
+import io.github.spencerpark.jupyter.api.magic.registry.LineMagic;
+import io.github.spencerpark.jupyter.api.util.GlobFinder;
 
 import java.io.IOException;
 import java.util.List;

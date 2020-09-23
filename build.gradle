@@ -60,15 +60,15 @@ configurations {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven {
         url = 'https://oss.sonatype.org/content/repositories/snapshots/'
     }
-    mavenLocal()
 }
 
 dependencies {
-    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.3.0'
+    shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '3.0.0-SNAPSHOT'
 
     shade group: 'org.apache.ivy', name: 'ivy', version: '2.5.0-rc1'
     //shade group: 'org.apache.maven', name: 'maven-settings-builder', version: '3.6.0'
@@ -133,6 +133,11 @@ jupyter {
         string('timeout', 'IJAVA_TIMEOUT') {
             aliases NO_TIMEOUT: '-1'
             description = '''A duration specifying a timeout (in milliseconds by default) for a _single top level statement_. If less than `1` then there is no timeout. If desired a time may be specified with a `TimeUnit` may be given following the duration number (ex `"30 SECONDS"`).'''
+        }
+
+        list('extension-path', 'IJAVA_EXTENSION_PATH') {
+            separator = PATH_SEPARATOR
+            description = '''A file path seperator delimited list of extension roots to load on kernel startup.'''
         }
     }
 }
