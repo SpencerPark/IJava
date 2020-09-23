@@ -60,6 +60,8 @@ public class IJavaExecutionControl extends DirectExecutionControl {
 
     private final ExecutorService executor;
 
+    private final IJavaClassLoader classLoader;
+
     private final long timeoutTime;
     private final TimeUnit timeoutUnit;
 
@@ -71,17 +73,27 @@ public class IJavaExecutionControl extends DirectExecutionControl {
     }
 
     public IJavaExecutionControl(long timeoutTime, TimeUnit timeoutUnit) {
+        this(new IJavaClassLoader(null), timeoutTime, timeoutUnit);
+    }
+
+    private IJavaExecutionControl(IJavaClassLoader classLoader, long timeoutTime, TimeUnit timeoutUnit) {
+        super(new IJavaLoaderDelegate(classLoader));
+        this.classLoader = classLoader;
         this.timeoutTime = timeoutTime;
         this.timeoutUnit = timeoutTime > 0 ? Objects.requireNonNull(timeoutUnit) : TimeUnit.MILLISECONDS;
         this.executor = Executors.newCachedThreadPool(r -> new Thread(r, "IJava-executor-" + EXECUTOR_THREAD_ID.getAndIncrement()));
     }
 
+    public IJavaClassLoader getClassLoader() {
+        return this.classLoader;
+    }
+
     public long getTimeoutDuration() {
-        return timeoutTime;
+        return this.timeoutTime;
     }
 
     public TimeUnit getTimeoutUnit() {
-        return timeoutUnit;
+        return this.timeoutUnit;
     }
 
     public Object takeResult(String key) {

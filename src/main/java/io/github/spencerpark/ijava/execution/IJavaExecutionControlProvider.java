@@ -28,7 +28,7 @@ import jdk.jshell.spi.ExecutionControlProvider;
 import jdk.jshell.spi.ExecutionEnv;
 
 import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,7 +49,7 @@ public class IJavaExecutionControlProvider implements ExecutionControlProvider {
 
     private static final Pattern TIMEOUT_PATTERN = Pattern.compile("^(?<dur>-?\\d+)\\W*(?<unit>[A-Za-z]+)?$");
 
-    private final Map<String, IJavaExecutionControl> controllers = new WeakHashMap<>();
+    private final Map<String, IJavaExecutionControl> controllers = new ConcurrentHashMap<>();
 
     public IJavaExecutionControl getRegisteredControlByID(String id) {
         return this.controllers.get(id);

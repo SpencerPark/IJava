@@ -58,6 +58,12 @@ public class CodeEvaluator {
         return this.shell;
     }
 
+    public IJavaClassLoader getUserClassLoader() {
+        IJavaExecutionControl executionControl =
+                this.executionControlProvider.getRegisteredControlByID(this.executionControlID);
+        return executionControl.getClassLoader();
+    }
+
     private SourceCodeAnalysis.CompletionInfo analyzeCompletion(String source) {
         return this.sourceAnalyzer.analyzeCompletion(source);
     }
