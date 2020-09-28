@@ -23,15 +23,14 @@
  */
 package io.github.spencerpark.ijava;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 import io.github.spencerpark.jupyter.api.KernelConnectionProperties;
 import io.github.spencerpark.jupyter.channels.JupyterConnection;
 import io.github.spencerpark.jupyter.channels.JupyterSocket;
 import io.github.spencerpark.jupyter.kernel.ZmqKernelConnector;
 import io.github.spencerpark.jupyter.kernel.extension.JupyterKernelExtensions;
 
-import java.io.*;
+import java.io.File;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -48,25 +47,10 @@ public class IJava {
 
     public static final String DEFAULT_SHELL_INIT_RESOURCE_PATH = "ijava-jshell-init.jshell";
 
-    public static final String VERSION;
+    public static final String VERSION = IJavaBuildInfo.VERSION;
 
     public static InputStream resource(String path) {
         return IJava.class.getClassLoader().getResourceAsStream(path);
-    }
-
-    static {
-        InputStream metaStream = resource("ijava-kernel-metadata.json");
-        Reader metaReader = new InputStreamReader(metaStream);
-        try {
-            JsonElement meta = JsonParser.parseReader(metaReader);
-            VERSION = meta.getAsJsonObject().get("version").getAsString();
-        } finally {
-            try {
-                metaReader.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     private static JavaKernel kernel = null;

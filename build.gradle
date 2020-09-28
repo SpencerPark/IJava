@@ -51,12 +51,24 @@ compileJava {
     targetCompatibility = 1.9
 }
 
+sourceSets {
+    integrationTest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom implementation
+    integrationTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
 configurations {
     shade
     // transitive true to make sure that the dependencies of shade dependencies also get shaded
     // into the jar
     shade.transitive = true
-    compile.extendsFrom(shade)
+    implementation.extendsFrom(shade)
 }
 
 repositories {
@@ -74,7 +86,9 @@ dependencies {
     //shade group: 'org.apache.maven', name: 'maven-settings-builder', version: '3.6.0'
     shade group: 'org.apache.maven', name: 'maven-model-builder', version: '3.6.0'
 
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    integrationTestImplementation group: 'junit', name: 'junit', version: '4.12'
+    integrationTestImplementation group: 'io.github.spencerpark', name: 'jupyter-jvm-zmq-client', version: '0.0.1-SNAPSHOT'
 }
 
 jar {
@@ -87,14 +101,31 @@ jar {
     }
 }
 
-processResources {
-    def tokens = [
-            'version': project.version,
-            'project': project.name
-    ]
-    inputs.properties(tokens)
-    filter ReplaceTokens, tokens: tokens
+task generateBuildInfo {
+    final packageName = 'io.github.spencerpark.ijava'
+    final className = 'IJavaBuildInfo'
+    final contents = """\
+            |package $packageName;
+            |class $className {
+            |  public static final String VERSION = "${project.version}";
+            |  public static final String NAME = "${project.name}";
+            |  public static final String GROUP = "${project.group}";
+            |}
+            """.stripMargin()
+
+    final generatedSrcDir = file("$buildDir/generated/sources/buildInfo")
+    final generatedPath = file("$generatedSrcDir/${packageName.replace('.', '/')}/${className}.java")
+
+    inputs.property('contents', contents)
+    outputs.file(generatedPath)
+
+    sourceSets.main.java.srcDirs += generatedSrcDir
+
+    doLast {
+        generatedPath.write(contents, 'UTF-8')
+    }
 }
+compileJava.dependsOn generateBuildInfo
 
 publishing {
     publications {
@@ -143,7 +174,7 @@ jupyter {
 }
 
 installKernel {
-    kernelInstallPath = commandLineSpecifiedPath(userInstallPath)
+    kernelInstallPath = commandLineSpecifiedPath { file('py-venv/share/jupyter') }
 }
 
 zipKernel {
@@ -156,3 +187,19 @@ zipKernel {
     }
 }
 zipKernel.dependsOn 'generateLicenseReport'
+
+task integrationTest(type: Test) {
+    description = 'Runs integration tests.'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    shouldRunAfter test
+    dependsOn zipKernel
+
+    afterEvaluate {
+        systemProperty 'ijava.distPath', zipKernel.archivePath.absolutePath
+        systemProperty 'ijava.javaHome', System.getProperty('java.home')
+    }
+}
+check.dependsOn integrationTest

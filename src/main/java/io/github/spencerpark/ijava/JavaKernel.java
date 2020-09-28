@@ -106,11 +106,13 @@ public class JavaKernel extends BaseKernel {
                 .pygments("java")
                 .codemirror("java")
                 .build();
-        this.banner = String.format("Java %s :: IJava kernel %s \nProtocol v%s implementation by BaseKernel %s",
+        this.banner = String.format("Java %s :: IJava kernel %s \nProtocol v%s implementation by %s:%s:%s",
                 Runtime.version().toString(),
                 this.getKernelVersion(),
                 Header.PROTOCOL_VERISON,
-                BaseKernel.VERSION
+                BaseKernel.getImplementationGroupName(),
+                BaseKernel.getImplementationArtifactName(),
+                BaseKernel.getImplementationVersion()
         );
         this.helpLinks = List.of(
                 new LanguageInfo.Help("Java tutorial", "https://docs.oracle.com/javase/tutorial/java/nutsandbolts/index.html"),
@@ -152,7 +154,7 @@ public class JavaKernel extends BaseKernel {
 
     @Override
     public String getKernelVersion() {
-        return IJava.VERSION;
+        return IJavaBuildInfo.VERSION;
     }
 
     @Override
