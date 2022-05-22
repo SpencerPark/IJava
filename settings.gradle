@@ -1,1 +1,8 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+}
+
 rootProject.name = 'ijava'
