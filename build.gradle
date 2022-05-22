@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'maven-publish'
 //    id('com.github.hierynomus.license') version '0.14.0'
-    id('io.github.spencerpark.jupyter-kernel-installer') version '9001'
+    id('io.github.spencerpark.jupyter-kernel-installer') version '9002'
 //    id('com.github.jk1.dependency-license-report')
 }
 
