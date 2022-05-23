@@ -58,7 +58,7 @@ configurations {
     shade
     // transitive true to make sure that the dependencies of shade dependencies also get shaded
     // into the jar
-    shade.transitive = false
+    shade.transitive = true
     implementation.extendsFrom(shade)
 }
 
