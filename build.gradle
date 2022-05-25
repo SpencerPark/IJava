@@ -1,9 +1,9 @@
 plugins {
     id 'java'
     id 'maven-publish'
-//    id('com.github.hierynomus.license') version '0.14.0'
+    id('com.github.hierynomus.license') version '0.14.0'
     id('io.github.spencerpark.jupyter-kernel-installer') version '9004'
-//    id('com.github.jk1.dependency-license-report')
+    id('com.github.jk1.dependency-license-report')
 }
 
 import org.apache.tools.ant.filters.ReplaceTokens
@@ -24,6 +24,8 @@ wrapper {
 
 // Add the license header to source files
 // license {
+// compileJava.options.fork = true
+// compileJava.options.forkOptions.executable = '/usr/lib/jvm/java-17-openjdk/bin/javac'
 //     header = file('LICENSE')
 //     exclude '**/*.json'
 //     mapping {
@@ -73,10 +75,8 @@ repositories {
 dependencies {
     shade group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.3.0'
 
-	// has license
     shade group: 'org.apache.ivy', name: 'ivy', version: '2.5.0-rc1'
     //shade group: 'org.apache.maven', name: 'maven-settings-builder', version: '3.6.0'
-	// has license
     shade group: 'org.apache.maven', name: 'maven-model-builder', version: '3.6.0'
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
@@ -86,8 +86,8 @@ jar {
     //Include all shaded dependencies in the jar except META-INF to avoid conflicts
 
     from(configurations.shade.collect { it.isDirectory() ? it : zipTree(it) }) {
-		exclude 'META-INF', 'META-INF/**'
-	}
+        exclude 'META-INF', 'META-INF/**'
+    }
 
     manifest {
         attributes('Main-class': 'io.github.spencerpark.ijava.IJava')
@@ -153,8 +153,8 @@ zipKernel {
         with 'python'
     }
 
-    // from(generateLicenseReport.outputFolder) {
-    //     into 'dependency-licenses'
-    // }
+     from(generateLicenseReport.outputFolder) {
+         into 'dependency-licenses'
+     }
 }
-// zipKernel.dependsOn 'generateLicenseReport'
+ zipKernel.dependsOn 'generateLicenseReport'
