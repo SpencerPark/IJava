@@ -20,24 +20,24 @@ wrapper {
 }
 
 // Add the license header to source files
- license {
-     header = file('LICENSE')
-     exclude '**/*.json'
-     mapping {
-         // Use a regular multiline comment rather than a javadoc comment
-         java = 'SLASHSTAR_STYLE'
-     }
- }
+license {
+    header = file('LICENSE')
+    exclude '**/*.json'
+    mapping {
+        // Use a regular multiline comment rather than a javadoc comment
+        java = 'SLASHSTAR_STYLE'
+    }
+}
  build.dependsOn 'licenseFormat'
 
 // Configures the license report generated for the dependencies.
 licenseReport {
     excludeGroups = []
     renderers = [
-             // Generate a pretty HTML report that groups dependencies by their license.
-             new NewInventoryHtmlReportRenderer('dependencies.html'),
-             // TODO make sure ci verifies that all licenses are know to be allowed to redistribute before publishing
-             new JsonReportRenderer('dependencies.json')
+            // Generate a pretty HTML report that groups dependencies by their license.
+            new NewInventoryHtmlReportRenderer('dependencies.html'),
+            // TODO make sure ci verifies that all licenses are know to be allowed to redistribute before publishing
+            new JsonReportRenderer('dependencies.json')
     ]
 
     // Group same licenses despite names being slightly different (ex. Apache 2.0 vs Apache version 2)
@@ -147,8 +147,8 @@ zipKernel {
         with 'python'
     }
 
-     from(generateLicenseReport.outputFolder) {
-         into 'dependency-licenses'
-     }
+    from(generateLicenseReport.outputFolder) {
+        into 'dependency-licenses'
+    }
 }
 zipKernel.dependsOn 'generateLicenseReport'
