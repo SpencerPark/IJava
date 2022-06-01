@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "java",
+    "-jar",
+    "@KERNEL_INSTALL_DIRECTORY@/@project@-@version@-all.jar",
+    "{connection_file}"
+  ],
+  "display_name": "Java",
+  "env": {},
+  "interrupt_mode": "message",
+  "language": "java"
+}

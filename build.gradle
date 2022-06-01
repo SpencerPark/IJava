@@ -95,3 +95,29 @@ licenseReport {
 
     filters = [new LicenseBundleNormalizer()]
 }
+
+// pack up
+tasks.register('packDist', Zip) {
+    from(layout.buildDirectory.dir("resources/main")) {
+        include "install.py"
+    }
+
+    from(layout.buildDirectory.dir("libs")) {
+        include "*-all.jar"
+        into "java"
+    }
+
+    from(layout.buildDirectory.dir("resources/main")) {
+        include "kernel.json"
+        into "java"
+    }
+
+    from(layout.buildDirectory.dir("reports/dependency-license")) {
+        into "java/dependency-license"
+    }
+
+    dependsOn build
+}
+
+// execute task after build
+build.finalizedBy(packDist)
