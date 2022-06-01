@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2018 Spencer Park
+ * Copyright (c) 2022 ${author}
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
  */
 package io.github.spencerpark.ijava.execution;
 
+import io.github.spencerpark.ijava.utils.FileUtils;
 import io.github.spencerpark.jupyter.kernel.util.GlobFinder;
 import jdk.jshell.JShell;
 
@@ -43,13 +44,13 @@ public class CodeEvaluatorBuilder {
     private static final OutputStream STDERR = new LazyOutputStreamDelegate(() -> System.err);
     private static final InputStream STDIN = new LazyInputStreamDelegate(() -> System.in);
 
-    private String timeout;
     private final List<String> classpath;
     private final List<String> compilerOpts;
+    private final List<String> startupScripts;
+    private String timeout;
     private PrintStream out;
     private PrintStream err;
     private InputStream in;
-    private List<String> startupScripts;
 
     public CodeEvaluatorBuilder() {
         this.classpath = new LinkedList<>();
@@ -147,6 +148,15 @@ public class CodeEvaluatorBuilder {
     }
 
     public CodeEvaluatorBuilder startupScriptFiles(String paths) {
+        // todo debug
+        try {
+            String glob1 = "glob:*";
+            String path1 = ".";
+            System.out.println("------------- startup: " + FileUtils.listMatchedFilePath(glob1, path1));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         if (paths == null) return this;
         if (BLANK.matcher(paths).matches()) return this;
 
@@ -173,7 +183,7 @@ public class CodeEvaluatorBuilder {
             return this;
 
         try {
-            String script = new String(Files.readAllBytes(path), "UTF-8");
+            String script = Files.readString(path);
             this.startupScripts.add(script);
         } catch (IOException e) {
             throw new RuntimeException(String.format("IOException while loading startup script for '%s': %s", path, e.getMessage()), e);
