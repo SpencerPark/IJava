@@ -60,7 +60,7 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.ParseException;
 import java.util.*;
@@ -252,7 +252,7 @@ public class MavenResolver {
         return Arrays.stream(resolved.getAllArtifactsReports())
                 .filter(a -> JAR_TYPE.equalsIgnoreCase(a.getType()))
                 .map(ArtifactDownloadReport::getLocalFile)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private File convertPomToIvy(Ivy ivy, File pomFile) throws IOException, ParseException {
@@ -268,7 +268,7 @@ public class MavenResolver {
         parser.toIvyFile(pomUrl.openStream(), new URLResource(pomUrl), tempIvyFile, pomModule);
 
         MessageLogger logger = ivy.getLoggerEngine();
-        logger.info(new String(Files.readAllBytes(tempIvyFile.toPath()), Charset.forName("utf8")));
+        logger.info(Files.readString(tempIvyFile.toPath(), StandardCharsets.UTF_8));
 
         return tempIvyFile;
     }
@@ -298,20 +298,20 @@ public class MavenResolver {
 
         return Arrays.stream(resolved.getAllArtifactsReports())
                 .map(ArtifactDownloadReport::getLocalFile)
-                .collect(Collectors.toList());
+                .toList();
     }
 
 
     private String solidifyPartialPOM(String rawIn) throws ParserConfigurationException, IOException, SAXException, TransformerException {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newDefaultInstance();
         factory.setValidating(false);
         DocumentBuilder builder = factory.newDocumentBuilder();
 
         // Wrap in a dummy tag to allow fragments
         InputStream inStream = new SequenceInputStream(Collections.enumeration(Arrays.asList(
-                new ByteArrayInputStream("<ijava>".getBytes(Charset.forName("utf-8"))),
-                new ByteArrayInputStream(rawIn.getBytes(Charset.forName("utf-8"))),
-                new ByteArrayInputStream("</ijava>".getBytes(Charset.forName("utf-8")))
+                new ByteArrayInputStream("<ijava>".getBytes(StandardCharsets.UTF_8)),
+                new ByteArrayInputStream(rawIn.getBytes(StandardCharsets.UTF_8)),
+                new ByteArrayInputStream("</ijava>".getBytes(StandardCharsets.UTF_8))
         )));
 
         Document doc = builder.parse(inStream);
@@ -339,43 +339,37 @@ public class MavenResolver {
             Node child = rootChildren.item(i);
 
             switch (child.getNodeName()) {
-                case "modelVersion":
+                case "modelVersion" -> {
                     setModelVersion = true;
                     this.appendChildInNewDoc(child, fixed, project);
-                    break;
-                case "groupId":
+                }
+                case "groupId" -> {
                     setGroupId = true;
                     this.appendChildInNewDoc(child, fixed, project);
-                    break;
-                case "artifactId":
+                }
+                case "artifactId" -> {
                     setArtifactId = true;
                     this.appendChildInNewDoc(child, fixed, project);
-                    break;
-                case "version":
+                }
+                case "version" -> {
                     setVersion = true;
                     this.appendChildInNewDoc(child, fixed, project);
-                    break;
-                case "dependency":
-                    this.appendChildInNewDoc(child, fixed, dependencies);
-                    break;
-                case "repository":
-                    this.appendChildInNewDoc(child, fixed, repositories);
-                    break;
-                case "dependencies":
+                }
+                case "dependency" -> this.appendChildInNewDoc(child, fixed, dependencies);
+                case "repository" -> this.appendChildInNewDoc(child, fixed, repositories);
+                case "dependencies" -> {
                     // Add all dependencies to the collecting tag
                     NodeList dependencyChildren = child.getChildNodes();
                     for (int j = 0; j < dependencyChildren.getLength(); j++)
                         this.appendChildInNewDoc(dependencyChildren.item(j), fixed, dependencies);
-                    break;
-                case "repositories":
+                }
+                case "repositories" -> {
                     // Add all repositories to the collecting tag
                     NodeList repositoryChildren = child.getChildNodes();
                     for (int j = 0; j < repositoryChildren.getLength(); j++)
                         this.appendChildInNewDoc(repositoryChildren.item(j), fixed, repositories);
-                    break;
-                default:
-                    this.appendChildInNewDoc(child, fixed, project);
-                    break;
+                }
+                default -> this.appendChildInNewDoc(child, fixed, project);
             }
         }
 
@@ -408,8 +402,8 @@ public class MavenResolver {
         newParent.appendChild(newNode);
     }
 
-    private String writeDOM(Source src) throws TransformerException, UnsupportedEncodingException {
-        Transformer idTransformer = TransformerFactory.newInstance().newTransformer();
+    private String writeDOM(Source src) throws TransformerException {
+        Transformer idTransformer = TransformerFactory.newDefaultInstance().newTransformer();
         idTransformer.setOutputProperty(OutputKeys.INDENT, "yes");
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -417,7 +411,7 @@ public class MavenResolver {
 
         idTransformer.transform(src, dest);
 
-        return out.toString("utf-8");
+        return out.toString(StandardCharsets.UTF_8);
     }
 
     public void addJarsToClasspath(Iterable<String> jars) {
@@ -474,7 +468,7 @@ public class MavenResolver {
             tempPomPath.deleteOnExit();
 
             String rawPom = this.solidifyPartialPOM(body);
-            Files.write(tempPomPath.toPath(), rawPom.getBytes(Charset.forName("utf-8")));
+            Files.writeString(tempPomPath.toPath(), rawPom);
 
             List<String> loadArgs = new ArrayList<>(args.size() + 1);
             loadArgs.add(tempPomPath.getAbsolutePath());

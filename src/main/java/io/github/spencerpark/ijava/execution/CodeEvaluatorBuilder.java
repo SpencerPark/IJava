@@ -153,7 +153,7 @@ public class CodeEvaluatorBuilder {
             String glob1 = "glob:*";
             String path1 = ".";
             System.out.println("------------- startup: " + FileUtils.listMatchedFilePath(glob1, path1));
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

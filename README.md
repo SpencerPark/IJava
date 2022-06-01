@@ -32,45 +32,57 @@ Clicking on the [![badge](https://img.shields.io/badge/launch-binder-E66581.svg?
 
 Currently the kernel supports
 
-*   Code execution.
-    ![output](docs/img/output.png)
-*   Autocompletion (`TAB` in Jupyter notebook).
-    ![autocompletion](docs/img/autocompletion.png)
-*   Code inspection (`Shift-TAB` up to 4 times in Jupyter notebook).
-    ![code-inspection](docs/img/code-inspection.png)
-*   Colored, friendly, error message displays.
-    ![compilation-error](docs/img/compilation-error.png)
-    ![incomplete-src-error](docs/img/incomplete-src-error.png)
-    ![runtime-error](docs/img/runtime-error.png)
-*   Add maven dependencies at runtime (See also [magics.md](docs/magics.md) and [Try the example ![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?urlpath=lab/tree/home/jovyan/3rdPartyDependency.ipynb)).
-    ![maven-pom-dep](docs/img/maven-pom-dep.png)
-*   Display rich output (See also [display.md](docs/display.md) and [maven magic](docs/magics.md#addmavendependencies)). Chart library in the demo photo is [XChart](https://github.com/knowm/XChart) with the sample code taken from their README. ([Try the example ![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?urlpath=lab/tree/home/jovyan/3rdPartyDependency.ipynb))
-    ![display-img](docs/img/display-img.png)
-*   `eval` function. (See also [kernel.md](docs/kernel.md)) **Note: the signature is `Object eval(String) throws Exception`.** This evaluates the expression (a cell) in the user scope and returns the actual evaluation result instead of a serialized one.
-    ![eval](docs/img/eval.png)
-*   Configurable evaluation timeout
-    ![timeout](docs/img/timeout.png)
+* Code execution.
+  ![output](docs/img/output.png)
+* Autocompletion (`TAB` in Jupyter notebook).
+  ![autocompletion](docs/img/autocompletion.png)
+* Code inspection (`Shift-TAB` up to 4 times in Jupyter notebook).
+  ![code-inspection](docs/img/code-inspection.png)
+* Colored, friendly, error message displays.
+  ![compilation-error](docs/img/compilation-error.png)
+  ![incomplete-src-error](docs/img/incomplete-src-error.png)
+  ![runtime-error](docs/img/runtime-error.png)
+* Add maven dependencies at runtime (See also [magics.md](docs/magics.md)
+  and [Try the example ![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?urlpath=lab/tree/home/jovyan/3rdPartyDependency.ipynb))
+  .
+  ![maven-pom-dep](docs/img/maven-pom-dep.png)
+* Display rich output (See also [display.md](docs/display.md) and [maven magic](docs/magics.md#addmavendependencies)).
+  Chart library in the demo photo is [XChart](https://github.com/knowm/XChart) with the sample code taken from their
+  README. ([Try the example ![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/SpencerPark/ijava-binder/master?urlpath=lab/tree/home/jovyan/3rdPartyDependency.ipynb))
+  ![display-img](docs/img/display-img.png)
+* `eval` function. (See also [kernel.md](docs/kernel.md)) **Note: the signature
+  is `Object eval(String) throws Exception`.** This evaluates the expression (a cell) in the user scope and returns the
+  actual evaluation result instead of a serialized one.
+  ![eval](docs/img/eval.png)
+* Configurable evaluation timeout
+  ![timeout](docs/img/timeout.png)
+* Print with variable name or source
+  ![timeout](docs/img/print-with-var-name.png)
 
 ### Requirements
 
-1.  [Java JDK >= 9](http://www.oracle.com/technetwork/java/javase/downloads/index.html). **Not the JRE**. Java 12 is the current release and should be considered if selecting a version but if a java 9, 10, or 11 build is installed, everything _should_ still be working fine.
+1. ~~[Java JDK >= 9](http://www.oracle.com/technetwork/java/javase/downloads/index.html). **Not the JRE**. Java 12 is
+   the current release and should be considered if selecting a version but if a java 9, 10, or 11 build is installed,
+   everything _should_ still be working
+   fine.~~[Java JDK >= 17](http://www.oracle.com/technetwork/java/javase/downloads/index.html). **Not the JRE**.
 
-    1.  Ensure that the `java` command is in the PATH and is using version 9. For example:
-        ```bash
-        > java -version
-        java version "9"
-        Java(TM) SE Runtime Environment (build 9+181)
-        Java HotSpot(TM) 64-Bit Server VM (build 9+181, mixed mode)
-        ```
+    1. Ensure that the `java` command is in the PATH and is using version 9. For example:
+       ```bash
+       > java -version
+       java version "17.0.2" 2022-01-18 LTS
+       Java(TM) SE Runtime Environment (build 17.0.2+8-LTS-86)
+       Java HotSpot(TM) 64-Bit Server VM (build 17.0.2+8-LTS-86, mixed mode, sharing)
+       ```
 
-    2.  Next ensure that `java` is in a location where the jdk was installed and not just the jre. Use the `java --list-modules` command to do this. The list should contain `jdk.jshell`.
+    2. Next ensure that `java` is in a location where the jdk was installed and not just the jre. Use
+       the `java --list-modules` command to do this. The list should contain `jdk.jshell`.
 
-        *   On *nix `java --list-modules | grep "jdk.jshell"`
-        *   On windows `java --list-modules | findstr "jdk.jshell"`
+        * On *nix `java --list-modules | grep "jdk.jshell"`
+        * On windows `java --list-modules | findstr "jdk.jshell"`
 
-        Both should output `jdk.jshell@` followed by your java version.
+       Both should output `jdk.jshell@` followed by your java version.
 
-    If the kernel cannot start with an error along the lines of
+   If the kernel cannot start with an error along the lines of
     ```text
     Exception in thread "main" java.lang.NoClassDefFoundError: jdk/jshell/JShellException
             ...
@@ -117,23 +129,32 @@ Get the latest _release_ of the software with no compilation needed. See [Instal
 
 Get the latest version of the kernel but possibly run into some issues with installing. This is also the route to take if you wish to contribute to the kernel.
 
-1.  Download the project.
+1. Download the project.
     ```bash
     > git clone https://github.com/SpencerPark/IJava.git
     > cd IJava/
     ```
 
-2.  Build and install the kernel.
-    
-    On *nix `./gradlew installKernel`
-        
-    On windows `gradlew installKernel`
+2. Build the kernel.
 
-    See all available options for configuring the install path with `gradlew -q help --task installKernel`. Pass the `--default`, `--user`, `--sys-prefix`, `--prefix`, `--path`, or `--legacy` options to change the install location. Also use the `--param` flag (repeatedly) to set (or add) parameter values with the parameter names (not environment variable) specified in the configuration section below. For example `--param classpath:/my/classpath/root` to append to the classpath list.
+   On *nix `./gradlew build`
+
+   On windows `gradlew build`
+
+   See all available options for configuring the install path with `gradlew -q help --task installKernel`. Pass
+   the `--default`, `--user`, `--sys-prefix`, `--prefix`, `--path`, or `--legacy` options to change the install
+   location. Also use the `--param` flag (repeatedly) to set (or add) parameter values with the parameter names (not
+   environment variable) specified in the configuration section below. For
+   example `--param classpath:/my/classpath/root` to append to the classpath list.
+
+3. install the kernel: plz follow *#Install pre-built binary*
 
 ### Configuring
 
-Configuring the kernel can be done via environment variables. These can be set on the system or inside the `kernel.json`. The configuration can be done at install time, which may be repeated as often as desired. The parameters are listed with `python3 install.py -h` as well as below in the list of options. Configuration done via the installer (or `gradlew installKernel --param ...:...`) should use the names in the _Parameter name_ column.
+Configuring the kernel can be done via environment variables. These can be set on the system or inside the `kernel.json`
+. The configuration can be done at install time, which may be repeated as often as desired. The parameters are listed
+with `python3 install.py -h` as well as below in the list of options. Configuration done via the installer (
+or `gradlew installKernel --param ...:...`) should use the names in the _Parameter name_ column.
 
 #### List of options
 
@@ -178,8 +199,8 @@ For example to enable assertions, set a limit on the heap size to `128m`.
 
 ```diff
 {
-- "argv": [ "java", "-jar", "{connection_file}"],
-+ "argv": [ "java", "-ea", "-Xmx128m", "-jar", "{connection_file}"],
+- "argv": [ "java", "-jar", "path_to_ijava_jar", "{connection_file}"],
++ "argv": [ "java", "-ea", "-Xmx128m", "-jar", "path_to_ijava_jar", "{connection_file}"],
   "display_name": "Java",
   "language": "java",
   "interrupt_mode": "message",
@@ -188,16 +209,31 @@ For example to enable assertions, set a limit on the heap size to `128m`.
 }
 ```
 
+For debug, argv example:
+
+```
+[
+  "java",
+  "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005",
+  "-jar",
+  "path_to_ijava_jar",
+  "{connection_file}"
+]
+```
+
 ### Run
 
-This is where the documentation diverges, each environment has it's own way of selecting a kernel. To test from command line with Jupyter's console application run:
+This is where the documentation diverges, each environment has it's own way of selecting a kernel. To test from command
+line with [Jupyter's console](https://github.com/jupyter/jupyter_console) (`pip install jupyter-console` to install)
+application run:
 
 ```bash
 jupyter console --kernel=java
 ```
 
 Then at the prompt try:
-```java
+
+```
 In [1]: String helloWorld = "Hello world!"
 
 In [2]: helloWorld

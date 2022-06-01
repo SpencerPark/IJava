@@ -70,6 +70,7 @@ shadowJar {
         include 'build.gradle'
     }
 }
+build.dependsOn 'shadowJar'
 
 // publish
 //publishing {

@@ -46,7 +46,7 @@ public class TestUtils {
 
     @Test
     public void testReadXml() throws XMLStreamException, FileNotFoundException {
-        String filePath = "D:\\Maven\\apache-maven-3.6.3\\conf\\settings.xml";
+        Path filePath = Path.of("D:\\Maven\\apache-maven-3.6.3\\conf\\settings.xml");
         Set<String> elementNames = Collections.singleton("localRepository");
         Map<String, String> elementTextData = FileUtils.readXmlElementText(filePath, elementNames);
         Assert.assertNotNull(elementTextData);

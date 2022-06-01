@@ -26,6 +26,7 @@ package io.github.spencerpark.ijava;
 import io.github.spencerpark.ijava.execution.*;
 import io.github.spencerpark.ijava.magics.ClasspathMagics;
 import io.github.spencerpark.ijava.magics.MavenResolver;
+import io.github.spencerpark.ijava.magics.PrinterMagics;
 import io.github.spencerpark.jupyter.kernel.BaseKernel;
 import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
@@ -41,6 +42,7 @@ import jdk.jshell.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class JavaKernel extends BaseKernel {
@@ -76,7 +78,20 @@ public class JavaKernel extends BaseKernel {
 
     private final StringStyler errorStyler;
 
+    public static boolean printWithVarName = true;
+    // jupyter support ANSI_escape_code, java ansi code demo: https://stackoverflow.com/a/5762502
+    private static String varNamePattern = "\u001B[36m%s\u001B[0m: ";
+    private Long snippetId = 0L;
+
     public JavaKernel() {
+        // todo for debug
+        //try {
+        //    System.out.println("------------- sleep start -------------");
+        //    Thread.sleep(10 * 1000);
+        //    System.out.println("------------- sleep end -------------");
+        //} catch (InterruptedException e) {
+        //    e.printStackTrace();
+        //}
         this.evaluator = new CodeEvaluatorBuilder()
                 .addClasspathFromString(System.getenv(IJava.CLASSPATH_KEY))
                 .compilerOptsFromString(System.getenv(IJava.COMPILER_OPTS_KEY))
@@ -95,6 +110,7 @@ public class JavaKernel extends BaseKernel {
         this.magics.registerMagics(this.mavenResolver);
         this.magics.registerMagics(new ClasspathMagics(this::addToClasspath));
         this.magics.registerMagics(new Load(List.of(".jsh", ".jshell", ".java", ".ijava"), this::eval));
+        this.magics.registerMagics(new PrinterMagics());
 
         this.languageInfo = new LanguageInfo.Builder("Java")
                 .version(Runtime.version().toString())
@@ -103,7 +119,7 @@ public class JavaKernel extends BaseKernel {
                 .pygments("java")
                 .codemirror("java")
                 .build();
-        this.banner = String.format("Java %s :: IJava kernel %s \nProtocol v%s implementation by %s %s",
+        this.banner = String.format("Java %s :: IJava kernel %s %nProtocol v%s implementation by %s %s",
                 Runtime.version().toString(),
                 IJava.VERSION,
                 Header.PROTOCOL_VERISON,
@@ -154,24 +170,21 @@ public class JavaKernel extends BaseKernel {
 
     @Override
     public List<String> formatError(Exception e) {
-        List<String> fmt = new LinkedList<>();
-        if (e instanceof CompilationException) {
-            return formatCompilationException((CompilationException) e);
-        } else if (e instanceof IncompleteSourceException) {
-            return formatIncompleteSourceException((IncompleteSourceException) e);
-        } else if (e instanceof EvalException) {
-            return formatEvalException((EvalException) e);
-        } else if (e instanceof UnresolvedReferenceException) {
-            return formatUnresolvedReferenceException(((UnresolvedReferenceException) e));
-        } else if (e instanceof EvaluationTimeoutException) {
-            return formatEvaluationTimeoutException((EvaluationTimeoutException) e);
-        } else if (e instanceof EvaluationInterruptedException) {
-            return formatEvaluationInterruptedException((EvaluationInterruptedException) e);
+        if (e instanceof CompilationException compilationexception) {
+            return formatCompilationException(compilationexception);
+        } else if (e instanceof IncompleteSourceException incompleteSourceException) {
+            return formatIncompleteSourceException(incompleteSourceException);
+        } else if (e instanceof EvalException evalException) {
+            return formatEvalException(evalException);
+        } else if (e instanceof UnresolvedReferenceException unresolvedReferenceException) {
+            return formatUnresolvedReferenceException(unresolvedReferenceException);
+        } else if (e instanceof EvaluationTimeoutException evaluationTimeoutException) {
+            return formatEvaluationTimeoutException(evaluationTimeoutException);
+        } else if (e instanceof EvaluationInterruptedException evaluationInterruptedException) {
+            return formatEvaluationInterruptedException(evaluationInterruptedException);
         } else {
-            fmt.addAll(super.formatError(e));
+            return new LinkedList<>(super.formatError(e));
         }
-
-        return fmt;
     }
 
     private List<String> formatCompilationException(CompilationException e) {
@@ -196,15 +209,8 @@ public class JavaKernel extends BaseKernel {
 
                     fmt.add(""); // Add a blank line
                 });
-        if (snippet instanceof DeclarationSnippet) {
-            List<String> unresolvedDependencies = this.evaluator.getShell().unresolvedDependencies((DeclarationSnippet) snippet)
-                    .collect(Collectors.toList());
-            if (!unresolvedDependencies.isEmpty()) {
-                fmt.addAll(this.errorStyler.primaryLines(snippet.source()));
-                fmt.add(this.errorStyler.secondary("Unresolved dependencies:"));
-                unresolvedDependencies.forEach(dep ->
-                        fmt.add(this.errorStyler.secondary("   - " + dep)));
-            }
+        if (snippet instanceof DeclarationSnippet declarationSnippet) {
+            formatUnresolvedDep(declarationSnippet, fmt);
         }
 
         return fmt;
@@ -223,7 +229,6 @@ public class JavaKernel extends BaseKernel {
     private List<String> formatEvalException(EvalException e) {
         List<String> fmt = new ArrayList<>();
 
-
         String evalExceptionClassName = EvalException.class.getName();
         String actualExceptionName = e.getExceptionClassName();
         super.formatError(e).stream()
@@ -235,19 +240,17 @@ public class JavaKernel extends BaseKernel {
 
     private List<String> formatUnresolvedReferenceException(UnresolvedReferenceException e) {
         List<String> fmt = new ArrayList<>();
-
-        DeclarationSnippet snippet = e.getSnippet();
-
-        List<String> unresolvedDependencies = this.evaluator.getShell().unresolvedDependencies(snippet)
-                .collect(Collectors.toList());
-        if (!unresolvedDependencies.isEmpty()) {
-            fmt.addAll(this.errorStyler.primaryLines(snippet.source()));
-            fmt.add(this.errorStyler.secondary("Unresolved dependencies:"));
-            unresolvedDependencies.forEach(dep ->
-                    fmt.add(this.errorStyler.secondary("   - " + dep)));
-        }
-
+        formatUnresolvedDep(e.getSnippet(), fmt);
         return fmt;
+    }
+
+    private void formatUnresolvedDep(DeclarationSnippet declarationSnippet, final List<String> fmt) {
+        List<String> unresolvedDependencies = this.evaluator.getShell().unresolvedDependencies(declarationSnippet).toList();
+        if (!unresolvedDependencies.isEmpty()) {
+            fmt.addAll(this.errorStyler.primaryLines(declarationSnippet.source()));
+            fmt.add(this.errorStyler.secondary("Unresolved dependencies:"));
+            unresolvedDependencies.forEach(dep -> fmt.add(this.errorStyler.secondary("   - " + dep)));
+        }
     }
 
     private List<String> formatEvaluationTimeoutException(EvaluationTimeoutException e) {
@@ -280,12 +283,24 @@ public class JavaKernel extends BaseKernel {
     public DisplayData eval(String expr) throws Exception {
         Object result = this.evalRaw(expr);
 
-        if (result != null)
-            return result instanceof DisplayData
-                    ? (DisplayData) result
-                    : this.getRenderer().render(result);
+        // last snippet is ExpressSnippet or VarSnippet -> getSource().replaceAll("\s+", "")
+        if (result == null) return null;
+        if (result instanceof DisplayData displayData) return displayData;
 
-        return null;
+        if (printWithVarName) {
+            Optional<Snippet> lastSnippet = this.evaluator.getShell().snippets().skip(snippetId).reduce((first, second) -> second);
+            if (lastSnippet.isPresent()) {
+                Snippet snippet = lastSnippet.get();
+                if (snippet instanceof ExpressionSnippet || snippet instanceof VarSnippet) {
+                    snippetId = snippet.id().matches("\\d+") ? (Long.parseLong(snippet.id()) - 1) : (snippetId + 1);
+                    String sourceStr = snippet.source().replaceAll("\\s+", "");
+                    if (sourceStr.length() > 32) sourceStr = sourceStr.substring(0, 32) + "...";
+                    return this.getRenderer().render(String.format(varNamePattern, sourceStr) + result);
+                }
+            }
+        }
+
+        return this.getRenderer().render(result);
     }
 
     @Override
@@ -314,8 +329,7 @@ public class JavaKernel extends BaseKernel {
                             if (javadoc != null) formatted += '\n' + javadoc;
 
                             return formatted;
-                        }).collect(Collectors.joining("\n\n")
-                )
+                        }).collect(Collectors.joining("\n\n"))
         );
 
         fmtDocs.putHTML(
@@ -328,8 +342,7 @@ public class JavaKernel extends BaseKernel {
                             if (javadoc != null) formatted += "<br/>" + javadoc;
 
                             return formatted;
-                        }).collect(Collectors.joining("<br/><br/>")
-                )
+                        }).collect(Collectors.joining("<br/><br/>"))
         );
 
         return fmtDocs;
@@ -341,15 +354,12 @@ public class JavaKernel extends BaseKernel {
         List<SourceCodeAnalysis.Suggestion> suggestions = this.evaluator.getShell().sourceCodeAnalysis().completionSuggestions(code, at, replaceStart);
         if (suggestions == null || suggestions.isEmpty()) return null;
 
+        //      .sorted((s1, s2) -> s1.matchesType() ? s2.matchesType() ? 0 : -1 : s2.matchesType() ? 1 : 0)
         List<String> options = suggestions.stream()
-                .sorted((s1, s2) ->
-                        s1.matchesType()
-                                ? s2.matchesType() ? 0 : -1
-                                : s2.matchesType() ? 1 : 0
-                )
+                .sorted((s1, s2) -> (s1.matchesType() ? 0 : 1) + (s2.matchesType() ? 0 : -1))
                 .map(SourceCodeAnalysis.Suggestion::continuation)
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         return new ReplacementOptions(options, replaceStart[0], at);
     }

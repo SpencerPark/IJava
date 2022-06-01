@@ -1,0 +1,74 @@
+import io.github.spencerpark.ijava.IJava;
+import io.github.spencerpark.ijava.JavaKernel;
+import io.github.spencerpark.ijava.execution.CodeEvaluator;
+import jdk.jshell.JShell;
+import jdk.jshell.Snippet;
+
+import java.lang.reflect.Field;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+System.out.println("\n----- printer init -----\n");
+
+
+public class Printer {
+    private static final Pattern VAR_IDX_PATTERN = Pattern.compile("(?i)\\$JShell\\$(\\d+)");
+    private static final Pattern CONTENT_PATTERN = Pattern.compile(".*print\\((\\w+)\\)");
+
+    private static int varIdx = 0;
+    private static String prefix = "printer|";
+    // java ansi code demo: https://stackoverflow.com/a/5762502
+    private static final String varNameStylePattern = "\u001B[36m%s\u001B[0m";
+
+    private static JShell jshell;
+
+    static {
+        try {
+            JavaKernel kernel = IJava.getKernelInstance();
+            Field field = kernel.getClass().getDeclaredField("evaluator");
+            field.setAccessible(true);
+            CodeEvaluator evaluator = (CodeEvaluator) field.get(kernel);
+            jshell = evaluator.getShell();
+        } catch (Exception e) {
+            System.out.println(">>> Printer Get JShell instance error: " + e.getMessage());
+        }
+    }
+
+    public static void print(Object obj) {
+        String varName = null;
+
+        if (jshell != null) {
+            StackTraceElement[] strace = new Exception().getStackTrace();
+            // call from an outer *print* wrapper function, so the strace index is 1 + 1;
+            // if call Printer.print directly, the strace index is 1.
+            Matcher idMatcher = VAR_IDX_PATTERN.matcher(strace[1 + 1].getClassName());
+            String id = idMatcher.find() ? idMatcher.group(1) : null;
+            if (id != null) {
+                Optional<Snippet> snippetOptional = jshell.snippets()
+                        .skip(Long.parseLong(id) - 1)
+                        .filter(o -> o.id().equals(id)).findFirst();
+                if (snippetOptional.isPresent()) {
+                    Snippet snippet = snippetOptional.get();
+                    Matcher contentMatcher = CONTENT_PATTERN.matcher(snippet.source());
+                    varName = contentMatcher.find() ? contentMatcher.group(1) : null;
+                }
+            }
+        }
+        if (varName == null) {
+            varName = "var-" + varIdx;
+            varIdx++;
+        }
+        System.out.printf("%s %s | %s%n", prefix, String.format(varNameStylePattern, varName), obj);
+    }
+
+    public static JShell getJshell() {
+        return jshell;
+    }
+}
+
+
+public void print(Object arg) {
+    Printer.print(arg);
+}

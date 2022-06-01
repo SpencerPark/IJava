@@ -23,26 +23,20 @@
  */
 package io.github.spencerpark.ijava.magics.dependencies;
 
+import io.github.spencerpark.ijava.utils.FileUtils;
 import org.apache.maven.building.StringSource;
 import org.apache.maven.model.building.*;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLStreamException;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -132,44 +126,18 @@ public class Maven {
         return this.getUserHomePath().resolve("repository");
     }
 
-    private Path readConfiguredLocalRepositoryPath(Path settingsXmlPath) throws IOException, SAXException {
-        if (!Files.isRegularFile(settingsXmlPath))
-            return null;
+    private Path readConfiguredLocalRepositoryPath(Path settingsXmlPath) throws IOException, XMLStreamException {
+        if (!Files.isRegularFile(settingsXmlPath)) return null;
 
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setValidating(false);
-
-        DocumentBuilder builder;
-        try {
-            builder = factory.newDocumentBuilder();
-        } catch (ParserConfigurationException e) {
-            // We are configuring the factory, the configuration will be fine...
-            e.printStackTrace();
-            return null;
-        }
-
-        try (InputStream in = Files.newInputStream(settingsXmlPath)) {
-            Document settingsDoc = builder.parse(in);
-            NodeList settings = settingsDoc.getElementsByTagName("settings");
-            if (settings.getLength() == 0)
-                return null;
-
-            for (int i = 0; i < settings.getLength(); i++) {
-                Node setting = settings.item(i);
-                switch (setting.getNodeName()) {
-                    case "localRepository":
-                        String localRepository = setting.getTextContent();
-                        localRepository = this.replaceMavenVars(localRepository);
-                        return Paths.get(localRepository);
-                }
-            }
-        }
-
-        return null;
+        String localRepositoryName = "localRepository";
+        String localRepositoryVal = FileUtils.readXmlElementText(settingsXmlPath, Collections.singleton(localRepositoryName))
+                .get(localRepositoryName);
+        if (localRepositoryVal == null) return null;
+        return Paths.get(this.replaceMavenVars(localRepositoryVal));
     }
 
     // TODO just use the effective settings
-    public Path getConfiguredLocalRepositoryPath() throws IOException, SAXException {
+    public Path getConfiguredLocalRepositoryPath() throws IOException, XMLStreamException {
         Path userSettingsXmlPath = this.getUserSettingsPath();
         Path path = this.readConfiguredLocalRepositoryPath(userSettingsXmlPath);
 
@@ -199,18 +167,14 @@ public class Maven {
     }*/
 
     public ModelBuildingResult readEffectiveModel(CharSequence pom) throws ModelBuildingException {
-        return this.readEffectiveModel(req ->
-                req.setModelSource((ModelSource) new StringSource(pom))
-        );
+        return this.readEffectiveModel(req -> req.setModelSource((ModelSource) new StringSource(pom)));
     }
 
     public ModelBuildingResult readEffectiveModel(File pom) throws ModelBuildingException {
-        return this.readEffectiveModel(req ->
-                req.setPomFile(pom)
-        );
+        return this.readEffectiveModel(req -> req.setPomFile(pom));
     }
 
-    private ModelBuildingResult readEffectiveModel(Function<ModelBuildingRequest, ModelBuildingRequest> configuration) throws ModelBuildingException {
+    private ModelBuildingResult readEffectiveModel(UnaryOperator<ModelBuildingRequest> configuration) throws ModelBuildingException {
         DefaultModelBuilder modelBuilder = new DefaultModelBuilderFactory().newInstance();
 
         ModelBuildingRequest request = new DefaultModelBuildingRequest();

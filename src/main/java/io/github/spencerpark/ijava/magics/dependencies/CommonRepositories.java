@@ -25,8 +25,8 @@ package io.github.spencerpark.ijava.magics.dependencies;
 
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.apache.ivy.plugins.resolver.IBiblioResolver;
-import org.xml.sax.SAXException;
 
+import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -68,7 +68,7 @@ public class CommonRepositories {
             localRepoPath = Maven.getInstance().getConfiguredLocalRepositoryPath();
         } catch (IOException e) {
             throw new RuntimeException("Error reading maven settings. " + e.getLocalizedMessage(), e);
-        } catch (SAXException e) {
+        } catch (XMLStreamException e) {
             throw new RuntimeException("Error parsing maven settings. " + e.getLocalizedMessage(), e);
         }
 
