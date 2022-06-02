@@ -46,6 +46,7 @@ public class IJava {
     public static final String STARTUP_SCRIPT_KEY = "IJAVA_STARTUP_SCRIPT";
 
     public static final String DEFAULT_SHELL_INIT_RESOURCE_PATH = "ijava-jshell-init.jshell";
+    public static final String SHELL_INIT_RESOURCE_PATH_PRINTER = "print.jshell";
 
     public static final String VERSION;
 

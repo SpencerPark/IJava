@@ -24,9 +24,7 @@
 package io.github.spencerpark.ijava;
 
 import io.github.spencerpark.ijava.execution.*;
-import io.github.spencerpark.ijava.magics.ClasspathMagics;
-import io.github.spencerpark.ijava.magics.MavenResolver;
-import io.github.spencerpark.ijava.magics.PrinterMagics;
+import io.github.spencerpark.ijava.magics.*;
 import io.github.spencerpark.jupyter.kernel.BaseKernel;
 import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
@@ -70,7 +68,7 @@ public class JavaKernel extends BaseKernel {
     private final MavenResolver mavenResolver;
 
     private final MagicsSourceTransformer magicsTransformer;
-    private final Magics magics;
+    private static final Magics magics = new Magics();
 
     private final LanguageInfo languageInfo;
     private final String banner;
@@ -82,6 +80,7 @@ public class JavaKernel extends BaseKernel {
     // jupyter support ANSI_escape_code, java ansi code demo: https://stackoverflow.com/a/5762502
     private static String varNamePattern = "\u001B[36m%s\u001B[0m: ";
     private Long snippetId = 0L;
+    private static final List<String> COMMENT_PATTERNS = List.of("/\\*(.|\\s)*?\\*/", "//.*\\n*", "\\s+");
 
     public JavaKernel() {
         // todo for debug
@@ -96,6 +95,7 @@ public class JavaKernel extends BaseKernel {
                 .addClasspathFromString(System.getenv(IJava.CLASSPATH_KEY))
                 .compilerOptsFromString(System.getenv(IJava.COMPILER_OPTS_KEY))
                 .startupScript(IJava.resource(IJava.DEFAULT_SHELL_INIT_RESOURCE_PATH))
+                .startupScript(IJava.resource(IJava.SHELL_INIT_RESOURCE_PATH_PRINTER))
                 .startupScriptFiles(System.getenv(IJava.STARTUP_SCRIPTS_KEY))
                 .startupScript(System.getenv(IJava.STARTUP_SCRIPT_KEY))
                 .timeoutFromString(System.getenv(IJava.TIMEOUT_DURATION_KEY))
@@ -106,11 +106,12 @@ public class JavaKernel extends BaseKernel {
         this.mavenResolver = new MavenResolver(this::addToClasspath);
 
         this.magicsTransformer = new MagicsSourceTransformer();
-        this.magics = new Magics();
-        this.magics.registerMagics(this.mavenResolver);
-        this.magics.registerMagics(new ClasspathMagics(this::addToClasspath));
-        this.magics.registerMagics(new Load(List.of(".jsh", ".jshell", ".java", ".ijava"), this::eval));
-        this.magics.registerMagics(new PrinterMagics());
+        magics.registerMagics(this.mavenResolver);
+        magics.registerMagics(new ClasspathMagics(this::addToClasspath));
+        magics.registerMagics(new Load(List.of(".jsh", ".jshell", ".java", ".ijava"), this::eval));
+        magics.registerMagics(new PrinterMagics());
+        magics.registerMagics(new MagicsTool());
+        magics.registerMagics(new TimeItMagics());
 
         this.languageInfo = new LanguageInfo.Builder("Java")
                 .version(Runtime.version().toString())
@@ -149,8 +150,8 @@ public class JavaKernel extends BaseKernel {
         return this.mavenResolver;
     }
 
-    public Magics getMagics() {
-        return this.magics;
+    public static Magics getMagics() {
+        return magics;
     }
 
     @Override
@@ -283,7 +284,6 @@ public class JavaKernel extends BaseKernel {
     public DisplayData eval(String expr) throws Exception {
         Object result = this.evalRaw(expr);
 
-        // last snippet is ExpressSnippet or VarSnippet -> getSource().replaceAll("\s+", "")
         if (result == null) return null;
         if (result instanceof DisplayData displayData) return displayData;
 
@@ -293,7 +293,8 @@ public class JavaKernel extends BaseKernel {
                 Snippet snippet = lastSnippet.get();
                 if (snippet instanceof ExpressionSnippet || snippet instanceof VarSnippet) {
                     snippetId = snippet.id().matches("\\d+") ? (Long.parseLong(snippet.id()) - 1) : (snippetId + 1);
-                    String sourceStr = snippet.source().replaceAll("\\s+", "");
+                    String sourceStr = snippet.source();
+                    for (String pattern : COMMENT_PATTERNS) sourceStr = sourceStr.replaceAll(pattern, "");
                     if (sourceStr.length() > 32) sourceStr = sourceStr.substring(0, 32) + "...";
                     return this.getRenderer().render(String.format(varNamePattern, sourceStr) + result);
                 }

@@ -23,7 +23,6 @@
  */
 package io.github.spencerpark.ijava.execution;
 
-import io.github.spencerpark.ijava.utils.FileUtils;
 import io.github.spencerpark.jupyter.kernel.util.GlobFinder;
 import jdk.jshell.JShell;
 
@@ -149,13 +148,13 @@ public class CodeEvaluatorBuilder {
 
     public CodeEvaluatorBuilder startupScriptFiles(String paths) {
         // todo debug
-        try {
-            String glob1 = "glob:*";
-            String path1 = ".";
-            System.out.println("------------- startup: " + FileUtils.listMatchedFilePath(glob1, path1));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        //try {
+        //    String glob1 = "glob:*";
+        //    String path1 = ".";
+        //    System.out.println("------------- startup: " + FileUtils.listMatchedFilePath(glob1, path1));
+        //} catch (Exception e) {
+        //    e.printStackTrace();
+        //}
 
         if (paths == null) return this;
         if (BLANK.matcher(paths).matches()) return this;
@@ -182,6 +181,8 @@ public class CodeEvaluatorBuilder {
         if (!Files.isReadable(path))
             return this;
 
+        // debug
+        System.out.printf("found startup file: %s%n", path);
         try {
             String script = Files.readString(path);
             this.startupScripts.add(script);

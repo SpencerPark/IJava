@@ -116,8 +116,9 @@ tasks.register('packDist', Zip) {
         into "java/dependency-license"
     }
 
+    dependsOn generateLicenseReport
     dependsOn build
 }
 
 // execute task after build
-build.finalizedBy(packDist)
+//build.finalizedBy(packDist)
