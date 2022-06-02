@@ -1,0 +1,48 @@
+# Build a Java project with Gradle and cache/restore any dependencies to improve the workflow execution time
+# Docs: https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions
+# Docs: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
+# Docs: https://github.com/softprops/action-gh-release
+
+name: Build And Release
+
+#on: push
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+# softprops/action-gh-release need write perm
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo github workspace=${{ github.workspace }}
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Change wrapper permissions
+        run: chmod +x ./gradlew
+
+      - name: Execute Gradle build
+        run: ./gradlew packDist
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          body_path: UPGRADE.md
+          files: |
+            README.md
+            build/distributions/ijava-1.4.0.zip
