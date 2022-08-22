@@ -1,11 +1,13 @@
 Upgrade Note:
 
-* Upgrade to jdk 17 and gradle 7.3.3
-* Print with variable name or source
-  ![timeout](docs/img/print-with-var-name.png)
-* add `print` function and `printerPrefix` line magic
-  ![timeout](docs/img/print-func-line-magic.png)
-* add `list` line magic
-  ![timeout](docs/img/line-magic-list.png)
-* add `time` cell magic
-  ![timeout](docs/img/cell-magic-time.png)
+* Fix `print` input parameter extraction error in code blocks that are called multiple times;
+* add `RuntimeCompiler` util;
+* add `compile` cellMagic (make sure `--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED` in env *
+  IJAVA_COMPILER_OPTS*)
+  ![compile](docs/img/compile-cell-magic.png)
+* add `read/write` cell/body magic
+  ![r-w](docs/img/read-write-line-magic.png)
+  ![r-w](docs/img/write-cell-magic.png)
+* add `cmd` line magic
+  ![cmd](docs/img/cmd-line-magic.png)
+

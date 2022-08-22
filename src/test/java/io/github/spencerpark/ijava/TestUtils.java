@@ -1,13 +1,16 @@
 package io.github.spencerpark.ijava;
 
 import io.github.spencerpark.ijava.utils.FileUtils;
+import io.github.spencerpark.ijava.utils.RuntimeCompiler;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class TestUtils {
     @Test
@@ -34,6 +37,49 @@ public class TestUtils {
         } catch (Exception e) {
             // pass
             System.out.println(e.getMessage());
+        }
+    }
+
+    //@Test
+    public void testCompile() {
+        String name = "vo.Cat";
+        String clzDef = """
+                package vo;
+                                
+                //import lombok.Data;
+                                
+                //@Data
+                public class Cat {
+                    private String name;
+                    private Integer age;
+                }
+                """;
+        Class<?> clz = RuntimeCompiler.compile(name, clzDef, true);
+        List<String> methods = Arrays.stream(clz.getDeclaredMethods())
+                .map(method -> method.getName() + "(" + Arrays.stream(method.getGenericParameterTypes())
+                        .map(type -> type.getTypeName().substring(type.getTypeName().lastIndexOf('.') + 1))
+                        .collect(Collectors.joining(",")) + ")").toList();
+
+        System.out.printf("compile done, clz: %s, clz's declared methods: %s%n", clz, methods);
+    }
+
+    //@Test
+    public void testProcess() throws IOException {
+        String[] commands = {"ping", "localhost"};
+        Process proc = Runtime.getRuntime().exec(commands);
+
+        String s = null;
+        try (InputStreamReader inputStreamReader = new InputStreamReader(proc.getInputStream());
+             BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+            while ((s = bufferedReader.readLine()) != null) {
+                System.out.println(s);
+            }
+        }
+        try (InputStreamReader inputStreamReader = new InputStreamReader(proc.getErrorStream());
+             BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+            while ((s = bufferedReader.readLine()) != null) {
+                System.out.println(s);
+            }
         }
     }
 }

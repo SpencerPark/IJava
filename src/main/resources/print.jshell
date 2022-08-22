@@ -41,14 +41,20 @@ import java.util.regex.Pattern;
 public class Printer {
     private static final Pattern VAR_IDX_PATTERN = Pattern.compile("(?i)\\$JShell\\$(\\d+)");
     private static final String METHOD_NAME = "print";
+    private static final Pattern methodPattern = Pattern.compile(METHOD_NAME + "\\s*\\(\\s*(?<content>(.*)|(\".*\"))\\s*\\)");
+    private static final Pattern methodStrictPattern = Pattern.compile(METHOD_NAME + "\\s*\\(\\s*(?<content>\\w+(\\.\\w+(\\(.*\\))?)*)\\s*\\)");
+    private static final List<String> COMMENT_PATTERNS = List.of("/\\*(.|\\s)*?\\*/", "//.*\\n*");
 
-    private static final List<String> COMMENT_PATTERNS = List.of("/\\*(.|\\s)*?\\*/", "//.*\\n*", "\\s+");
+    // {String: snippet id, int: pos}
+    private static final Object[] methodSourcePos = {null, 0};
 
-    private static int varIdx = 0;
-    //private static String prefix = "printer| ";
-    private static String prefix = "";
     // java ansi code demo: https://stackoverflow.com/a/5762502
     private static final String varNameStylePattern = "\u001B[36m%s\u001B[0m";
+
+    private static int varIdx = 0;
+
+    //private static String prefix = "printer| ";
+    private static String prefix = "";
 
     private static JShell jshell;
 
@@ -62,6 +68,15 @@ public class Printer {
         } catch (Exception e) {
             System.out.println(">>> Printer Get JShell instance error: " + e.getMessage());
         }
+    }
+
+    public static int countSubStr(String src, String dst, int startIdx) {
+        int cnt = 0;
+        while ((startIdx = src.indexOf(dst, startIdx)) >= 0) {
+            cnt++;
+            startIdx += dst.length() - 1;
+        }
+        return cnt;
     }
 
     public static void print(Object obj) {
@@ -80,11 +95,18 @@ public class Printer {
                 if (snippetOptional.isPresent()) {
                     Snippet snippet = snippetOptional.get();
                     String source = snippet.source();
-                    if (source.contains(METHOD_NAME)) {
-                        for (String pattern : COMMENT_PATTERNS) {
-                            source = source.replaceAll(pattern, "");
+                    for (String pattern : COMMENT_PATTERNS) source = source.replaceAll(pattern, "");
+                    int occuCnt = countSubStr(source, METHOD_NAME, 0);
+                    if (occuCnt > 0) {
+                        if (!id.equals(methodSourcePos[0])) {
+                            methodSourcePos[0] = id;
+                            methodSourcePos[1] = 0;
                         }
-                        varName = source.substring(source.indexOf("(") + 1, source.lastIndexOf(")"));
+                        Matcher methodMatcher = (occuCnt == 1 ? methodPattern : methodStrictPattern).matcher(source);
+                        if (methodMatcher.find((int) methodSourcePos[1])) {
+                            methodSourcePos[1] = methodMatcher.end();
+                            varName = methodMatcher.group("content").replaceAll("\\s+", " ");
+                        }
                     }
                 }
             }

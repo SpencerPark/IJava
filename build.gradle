@@ -14,7 +14,7 @@ plugins {
 }
 
 group = 'io.github.spencerpark'
-version = '1.4.0'
+version = '1.4.1'
 
 repositories {
     mavenLocal()
@@ -98,6 +98,8 @@ licenseReport {
 
 // pack up
 tasks.register('packDist', Zip) {
+    archiveFileName = project.name + "-latest.zip"
+
     from(layout.buildDirectory.dir("resources/main")) {
         include "install.py"
     }

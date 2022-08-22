@@ -44,5 +44,4 @@ jobs:
         with:
           body_path: UPGRADE.md
           files: |
-            README.md
-            build/distributions/ijava-1.4.0.zip
+            build/distributions/ijava-latest.zip

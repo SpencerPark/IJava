@@ -112,6 +112,7 @@ public class JavaKernel extends BaseKernel {
         magics.registerMagics(new PrinterMagics());
         magics.registerMagics(new MagicsTool());
         magics.registerMagics(new TimeItMagics());
+        magics.registerMagics(new CompilerMagics(this::addToClasspath));
 
         this.languageInfo = new LanguageInfo.Builder("Java")
                 .version(Runtime.version().toString())
