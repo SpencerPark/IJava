@@ -5,7 +5,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 
 plugins {
-    id 'java'
+    id 'java-library'
     // id 'maven-publish' // use johnrengelman.shadow instead
     id 'com.github.hierynomus.license' version '0.16.1'
     id "com.github.jk1.dependency-license-report" version "2.1"
@@ -28,10 +28,15 @@ dependencies {
     implementation group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.3.0'
 
     // ------ for maven resolve and download ------
-    implementation 'org.eclipse.aether:aether-connector-basic:1.1.0'
-    implementation 'org.eclipse.aether:aether-transport-file:1.1.0'
-    implementation 'org.eclipse.aether:aether-transport-http:1.1.0'
-    implementation 'org.apache.maven:maven-aether-provider:3.3.9'
+    // implementation 'org.apache.maven:maven-resolver-provider:4.0.0-alpha-2'
+    implementation('org.apache.maven:maven-resolver-provider:3.8.6') {
+        exclude group: 'org.apache.maven.resolver'  // manual include 1.8.2
+    }
+    implementation 'org.apache.maven.resolver:maven-resolver-impl:1.8.2'
+    implementation 'org.apache.maven.resolver:maven-resolver-connector-basic:1.8.2'
+    implementation 'org.apache.maven.resolver:maven-resolver-transport-file:1.8.2'
+    implementation 'org.apache.maven.resolver:maven-resolver-transport-http:1.8.2'
+    implementation 'org.apache.maven.resolver:maven-resolver-transport-classpath:1.8.2'
     // ------ for maven resolve and download ------
 
     implementation 'org.apache.logging.log4j:log4j-core:2.19.0'

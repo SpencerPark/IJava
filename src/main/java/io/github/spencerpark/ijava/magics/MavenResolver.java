@@ -30,6 +30,7 @@ import io.github.spencerpark.jupyter.kernel.magic.registry.MagicsArgs;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.eclipse.aether.repository.NoLocalRepositoryManagerException;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.DependencyResolutionException;
 
@@ -71,8 +72,8 @@ public class MavenResolver {
     @LineMagic(aliases = {"addMavenDependency", "maven"})
     public void addMavenDependencies(List<String> args) {
         try {
-            this.addJarsToClasspath(ResolveDependency.resolve(remoteRepos, DEFAULT_REPO_LOCAL, args.toArray(new String[0])));
-        } catch (DependencyResolutionException e) {
+            this.addJarsToClasspath(ResolveDependency.resolve(args, null, DEFAULT_REPO_LOCAL, remoteRepos));
+        } catch (DependencyResolutionException | NoLocalRepositoryManagerException e) {
             throw new RuntimeException(e);
         }
     }
@@ -119,19 +120,20 @@ public class MavenResolver {
             MavenXpp3Reader reader = new MavenXpp3Reader();
             Model model = reader.read(new FileReader(pomPath, StandardCharsets.UTF_8));
             resolveModel(model);
-        } catch (IOException | XmlPullParserException | DependencyResolutionException e) {
+        } catch (IOException | XmlPullParserException | DependencyResolutionException |
+                 NoLocalRepositoryManagerException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void resolveModel(Model model) throws DependencyResolutionException {
+    private void resolveModel(Model model) throws DependencyResolutionException, NoLocalRepositoryManagerException {
         // add repo
         model.getRepositories().forEach(repo -> addRemoteRepo(repo.getId(), repo.getUrl()));
         // resolve dep
-        String[] coords = model.getDependencies()
+        List<String> coords = model.getDependencies()
                 .stream()
                 .map(dep -> String.format("%s:%s:%s", dep.getGroupId(), dep.getArtifactId(), dep.getVersion()))
-                .toArray(String[]::new);
-        this.addJarsToClasspath(ResolveDependency.resolve(remoteRepos, DEFAULT_REPO_LOCAL, coords));
+                .toList();
+        this.addJarsToClasspath(ResolveDependency.resolve(coords, null, DEFAULT_REPO_LOCAL, remoteRepos));
     }
 }
