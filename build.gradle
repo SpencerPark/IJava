@@ -25,7 +25,10 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'io.github.spencerpark', name: 'jupyter-jvm-basekernel', version: '2.3.0'
+    implementation('io.github.spencerpark:jupyter-jvm-basekernel:2.3.0') {
+        exclude group: 'com.google.code.gson', module: 'gson'
+    }
+    implementation 'com.google.code.gson:gson:2.10'
 
     // ------ for maven resolve and download ------
     // implementation 'org.apache.maven:maven-resolver-provider:4.0.0-alpha-2'
@@ -62,6 +65,17 @@ processResources {
     ]
     inputs.properties(tokens)
     filter tokens: tokens, ReplaceTokens
+}
+
+//java {
+//    withJavadocJar()
+//    withSourcesJar()
+//}
+
+compileJava {
+    options.compilerArgs << '-parameters'
+    // ignore deprecation for jupyter-jvm-basekernel gson JsonParser api
+//    options.compilerArgs << '-Xlint:all' << '-Xlint:-deprecation' << '-Xlint:-rawtypes' << '-Xlint:-serial'
 }
 
 jar {

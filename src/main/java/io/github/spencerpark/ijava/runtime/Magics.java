@@ -35,7 +35,7 @@ public class Magics {
 
         if (kernel != null) {
             try {
-                return kernel.getMagics().applyLineMagic(name, args);
+                return JavaKernel.getMagics().applyLineMagic(name, args);
             } catch (UndefinedMagicException e) {
                 throw e;
             } catch (Exception e) {
@@ -51,7 +51,7 @@ public class Magics {
 
         if (kernel != null) {
             try {
-                return kernel.getMagics().applyCellMagic(name, args, body);
+                return JavaKernel.getMagics().applyCellMagic(name, args, body);
             } catch (UndefinedMagicException e) {
                 throw e;
             } catch (Exception e) {

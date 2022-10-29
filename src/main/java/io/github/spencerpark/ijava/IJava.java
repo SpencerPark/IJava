@@ -58,7 +58,7 @@ public class IJava {
         InputStream metaStream = resource("ijava-kernel-metadata.json");
         Reader metaReader = new InputStreamReader(metaStream);
         try {
-            JsonElement meta = new JsonParser().parse(metaReader);
+            JsonElement meta = JsonParser.parseReader(metaReader);
             VERSION = meta.getAsJsonObject().get("version").getAsString();
         } finally {
             try {

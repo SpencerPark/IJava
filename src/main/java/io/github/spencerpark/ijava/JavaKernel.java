@@ -23,12 +23,14 @@
  */
 package io.github.spencerpark.ijava;
 
+import com.google.gson.JsonElement;
 import io.github.spencerpark.ijava.execution.*;
 import io.github.spencerpark.ijava.magics.*;
 import io.github.spencerpark.jupyter.kernel.BaseKernel;
 import io.github.spencerpark.jupyter.kernel.LanguageInfo;
 import io.github.spencerpark.jupyter.kernel.ReplacementOptions;
 import io.github.spencerpark.jupyter.kernel.display.DisplayData;
+import io.github.spencerpark.jupyter.kernel.display.mime.MIMEType;
 import io.github.spencerpark.jupyter.kernel.magic.common.Load;
 import io.github.spencerpark.jupyter.kernel.magic.registry.Magics;
 import io.github.spencerpark.jupyter.kernel.util.CharPredicate;
@@ -132,6 +134,10 @@ public class JavaKernel extends BaseKernel {
                 new LanguageInfo.Help("Java tutorial", "https://docs.oracle.com/javase/tutorial/java/nutsandbolts/index.html"),
                 new LanguageInfo.Help("IJava homepage", "https://github.com/SpencerPark/IJava")
         );
+        // todo io.github.spencerpark.jupyter.kernel.display.DisplayData putJSON, JsonParser.parseString
+        this.renderer.createRegistration(JsonElement.class)
+                .preferring(MIMEType.APPLICATION_JSON)
+                .register((data, context) -> context.renderIfRequested(MIMEType.APPLICATION_JSON, () -> data));
 
         this.errorStyler = new StringStyler.Builder()
                 .addPrimaryStyle(TextColor.BOLD_BLACK_FG)

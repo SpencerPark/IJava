@@ -23,12 +23,21 @@
  */
 package io.github.spencerpark.ijava.runtime;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import io.github.spencerpark.ijava.JavaKernel;
 import io.github.spencerpark.jupyter.kernel.display.DisplayData;
+import io.github.spencerpark.jupyter.kernel.display.mime.MIMEType;
 
+import java.io.Reader;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.UUID;
 
 public class Display {
+    private static final Gson GSON = new Gson();
+
     public static DisplayData render(Object o) {
         JavaKernel kernel = Kernel.getKernelInstance();
 
@@ -43,7 +52,17 @@ public class Display {
         JavaKernel kernel = Kernel.getKernelInstance();
 
         if (kernel != null) {
-            return kernel.getRenderer().renderAs(o, as);
+            return kernel.getRenderer().renderAs(parseAsJson(o, as), as);
+        } else {
+            throw new RuntimeException("No IJava kernel running");
+        }
+    }
+
+    public static DisplayData renderAsJson(Object o) {
+        JavaKernel kernel = Kernel.getKernelInstance();
+
+        if (kernel != null) {
+            return kernel.getRenderer().renderAs(parseAsJson(o), MIMEType.APPLICATION_JSON.toString());
         } else {
             throw new RuntimeException("No IJava kernel running");
         }
@@ -73,7 +92,7 @@ public class Display {
         JavaKernel kernel = Kernel.getKernelInstance();
 
         if (kernel != null) {
-            DisplayData data = kernel.getRenderer().renderAs(o, as);
+            DisplayData data = kernel.getRenderer().renderAs(parseAsJson(o, as), as);
 
             String id = data.getDisplayId();
             if (id == null) {
@@ -104,10 +123,21 @@ public class Display {
         JavaKernel kernel = Kernel.getKernelInstance();
 
         if (kernel != null) {
-            DisplayData data = kernel.getRenderer().renderAs(o, as);
+            DisplayData data = kernel.getRenderer().renderAs(parseAsJson(o, as), as);
             kernel.getIO().display.updateDisplay(id, data);
         } else {
             throw new RuntimeException("No IJava kernel running");
         }
+    }
+
+    private static Object parseAsJson(Object data, String... as) {
+        if (data instanceof JsonElement jsonElement) return jsonElement;
+        String jsonMime = MIMEType.APPLICATION_JSON.toString();
+        if (Objects.isNull(as) || as.length == 0 || Arrays.stream(as).anyMatch(mime -> mime.contains(jsonMime))) {
+            if (data instanceof String jsonStr) return JsonParser.parseString(jsonStr);
+            else if (data instanceof Reader reader) return JsonParser.parseReader(reader);
+            else return GSON.toJsonTree(data);
+        }
+        return data;
     }
 }
