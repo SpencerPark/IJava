@@ -57,16 +57,17 @@ public class CompilerMagics {
         String bodyCopy = body;
         for (String pattern : COMMENT_PATTERNS) bodyCopy = bodyCopy.replaceAll(pattern, "");
         Matcher matcher = PACKAGE_PATTERN.matcher(bodyCopy);
-        String clzCanonicalName = args.get(0);
-        String[] namePart = clzCanonicalName.split("\\.");
-        if (!matcher.find()) body = String.format("package %s;", namePart[namePart.length - 1]) + body;
+        String canonicalName = args.get(0);
+        String rootPath = canonicalName.substring(0, canonicalName.indexOf("."));
+        String packagePath = canonicalName.substring(0, canonicalName.lastIndexOf("."));
+        if (!matcher.find()) body = String.format("package %s;%n%n", packagePath) + body;
 
         // 2. build
-        RuntimeCompiler.compile(clzCanonicalName, body, buildCompilerOptions(), true);
+        RuntimeCompiler.compile(canonicalName, body, buildCompilerOptions(), true);
 
         // 3. add to classpath
         // todo hot-reload class
-        GlobFinder resolver = new GlobFinder(namePart[0]);
+        GlobFinder resolver = new GlobFinder(rootPath);
         try {
             resolver.computeMatchingPaths().forEach(path -> this.addToClasspath.accept(path.getParent().toAbsolutePath().toString()));
         } catch (IOException e) {

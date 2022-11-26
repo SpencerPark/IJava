@@ -88,7 +88,7 @@ public class JavaKernel extends BaseKernel {
         // todo for debug
         //try {
         //    System.out.println("------------- sleep start -------------");
-        //    Thread.sleep(10 * 1000);
+        //    Thread.sleep(10 * 1000L);
         //    System.out.println("------------- sleep end -------------");
         //} catch (InterruptedException e) {
         //    e.printStackTrace();
@@ -155,6 +155,10 @@ public class JavaKernel extends BaseKernel {
 
     public MavenResolver getMavenResolver() {
         return this.mavenResolver;
+    }
+
+    public JShell getShell() {
+        return this.evaluator.getShell();
     }
 
     public static Magics getMagics() {
