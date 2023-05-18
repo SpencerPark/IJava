@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2018 Spencer Park
+ * Copyright (c) 2022 ${author}
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -92,16 +92,11 @@ public class CodeEvaluator {
                     ? executionControl.takeResult(key)
                     : event.value();
 
-            switch (subKind) {
-                case VAR_VALUE_SUBKIND:
-                case OTHER_EXPRESSION_SUBKIND:
-                case TEMP_VAR_EXPRESSION_SUBKIND:
-                    result = NO_MAGIC_RETURN.equals(value) ? null : value;
-                    break;
-                default:
-                    result = null;
-                    break;
-            }
+            result = switch (subKind) {
+                case VAR_VALUE_SUBKIND, OTHER_EXPRESSION_SUBKIND, TEMP_VAR_EXPRESSION_SUBKIND ->
+                        NO_MAGIC_RETURN.equals(value) ? null : value;
+                default -> null;
+            };
         }
 
         for (SnippetEvent event : events) {
@@ -111,12 +106,11 @@ public class CodeEvaluator {
                 if (e != null) {
                     if (e instanceof EvalException) {
                         switch (((EvalException) e).getExceptionClassName()) {
-                            case IJavaExecutionControl.EXECUTION_TIMEOUT_NAME:
-                                throw new EvaluationTimeoutException(executionControl.getTimeoutDuration(), executionControl.getTimeoutUnit(), code.trim());
-                            case IJavaExecutionControl.EXECUTION_INTERRUPTED_NAME:
-                                throw new EvaluationInterruptedException(code.trim());
-                            default:
-                                throw e;
+                            case IJavaExecutionControl.EXECUTION_TIMEOUT_NAME ->
+                                    throw new EvaluationTimeoutException(executionControl.getTimeoutDuration(), executionControl.getTimeoutUnit(), code.trim());
+                            case IJavaExecutionControl.EXECUTION_INTERRUPTED_NAME ->
+                                    throw new EvaluationInterruptedException(code.trim());
+                            default -> throw e;
                         }
                     }
 
@@ -201,23 +195,19 @@ public class CodeEvaluator {
         while (info.completeness().isComplete())
             info = analyzeCompletion(info.remaining());
 
-        switch (info.completeness()) {
-            case UNKNOWN:
+        return switch (info.completeness()) {
+            case UNKNOWN ->
                 // Unknown means "bad code" and the only way to see if is complete is
                 // to execute it.
-                return JavaKernel.invalidCodeSignifier();
-            case COMPLETE:
-            case COMPLETE_WITH_SEMI:
-            case EMPTY:
-                return JavaKernel.completeCodeSignifier();
-            case CONSIDERED_INCOMPLETE:
-            case DEFINITELY_INCOMPLETE:
+                    JavaKernel.invalidCodeSignifier();
+            case COMPLETE, COMPLETE_WITH_SEMI, EMPTY -> JavaKernel.completeCodeSignifier();
+            case CONSIDERED_INCOMPLETE, DEFINITELY_INCOMPLETE ->
                 // Compute the indent of the last line and match it
-                return this.computeIndentation(info.remaining());
-            default:
+                    this.computeIndentation(info.remaining());
+            default ->
                 // For completeness, return an "I don't know" if we somehow get down here
-                return JavaKernel.maybeCompleteCodeSignifier();
-        }
+                    JavaKernel.maybeCompleteCodeSignifier();
+        };
     }
 
     public void interrupt() {

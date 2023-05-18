@@ -21,38 +21,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.github.spencerpark.ijava.execution;
+package io.github.spencerpark.ijava.magics;
 
-import java.util.concurrent.TimeUnit;
+import io.github.spencerpark.ijava.JavaKernel;
+import io.github.spencerpark.jupyter.kernel.magic.registry.LineMagic;
 
-public class EvaluationTimeoutException extends Exception {
-    private final long duration;
-    private final TimeUnit unit;
-    private final String source;
+import java.util.List;
 
-    public EvaluationTimeoutException(long duration, TimeUnit unit, String source) {
-        this.duration = duration;
-        this.unit = unit;
-        this.source = source;
-    }
+public class PrinterMagics {
 
-    public long getDuration() {
-        return duration;
-    }
-
-    public TimeUnit getUnit() {
-        return unit;
-    }
-
-    public String getSource() {
-        return source;
-    }
-
-    @Override
-    public String getMessage() {
-        return String.format("Evaluator timed out after %d %s while executing: '%s'",
-                this.duration,
-                this.unit.name().toLowerCase(),
-                this.source);
+    @LineMagic
+    public void printWithName(List<String> args) {
+        if (args == null || args.isEmpty()) {
+            JavaKernel.printWithVarName = !JavaKernel.printWithVarName;
+            System.out.println("printWithVarName=" + JavaKernel.printWithVarName + ", -h for help.");
+            return;
+        }
+        if (args.get(0).equals("-h") || args.get(0).equals("--help")) {
+            System.out.println("run %printWithName to switch");
+        }
     }
 }

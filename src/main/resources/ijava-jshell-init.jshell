@@ -10,6 +10,13 @@ import static io.github.spencerpark.ijava.runtime.Display.*;
 import static io.github.spencerpark.ijava.runtime.Kernel.*;
 import static io.github.spencerpark.ijava.runtime.Magics.*;
 
+import io.github.spencerpark.ijava.utils.LoggerInitiator;
+import static org.apache.logging.log4j.LogManager.getLogger;
+
+
 public void printf(String format, Object... args) {
     System.out.printf(format, args);
 }
+
+
+LoggerInitiator.init();

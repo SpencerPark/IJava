@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2018 Spencer Park
+ * Copyright (c) 2022 ${author}
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,7 @@ public class IJava {
     public static final String STARTUP_SCRIPT_KEY = "IJAVA_STARTUP_SCRIPT";
 
     public static final String DEFAULT_SHELL_INIT_RESOURCE_PATH = "ijava-jshell-init.jshell";
+    public static final String SHELL_INIT_RESOURCE_PATH_PRINTER = "print.jshell";
 
     public static final String VERSION;
 
@@ -57,7 +58,7 @@ public class IJava {
         InputStream metaStream = resource("ijava-kernel-metadata.json");
         Reader metaReader = new InputStreamReader(metaStream);
         try {
-            JsonElement meta = new JsonParser().parse(metaReader);
+            JsonElement meta = JsonParser.parseReader(metaReader);
             VERSION = meta.getAsJsonObject().get("version").getAsString();
         } finally {
             try {
