@@ -125,3 +125,30 @@ The cell magic is designed to make it very simple to copy and paste from any REA
       <version>2.0.0-SNAPSHOT</version>
     </dependency>
     ```
+
+
+### bash
+
+Runs a shell command and show the output
+
+###### Line magic
+
+*   **arguments**:
+    *   command and list of arguments of the command
+
+    Ex: To get a resource from an URL and save to a file in `/tmp`
+
+    ```
+    %bash wget URL -O /tmp/file
+    ```
+
+    Ex: to list files in a folder
+    ```
+    %bash ls folder
+    ```
+
+    This can be integrated with other Java sentences:
+    ```java
+    System.out.println("Contents of folder:");
+    %bash ls folder
+    ```
