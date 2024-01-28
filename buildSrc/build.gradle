@@ -9,5 +9,5 @@ repositories {
 }
 
 dependencies {
-    compile group: 'com.github.jk1.dependency-license-report', name: 'com.github.jk1.dependency-license-report.gradle.plugin', version: '1.1'
+    implementation group: 'com.github.jk1.dependency-license-report', name: 'com.github.jk1.dependency-license-report.gradle.plugin', version: '1.1'
 }
