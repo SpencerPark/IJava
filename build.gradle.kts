@@ -35,8 +35,6 @@ licenseReport {
 
     // Group same licenses despite names being slightly different (ex. Apache 2.0 vs Apache version 2)
     filters = arrayOf(LicenseBundleNormalizer())
-
-    configurations = arrayOf("compile")
 }
 
 java {
